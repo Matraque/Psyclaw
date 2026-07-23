@@ -1,0 +1,15 @@
+.venv/
+.env
+app/.env
+**/.adk/
+__pycache__/
+*.pyc
+dist/
+.DS_Store
+todo.txt
+
+# Patient records are local runtime data. Never commit real patient information.
+.psyclaw-data/
+
+# Legacy local patient directory from early development versions.
+psyclaw/patient/
