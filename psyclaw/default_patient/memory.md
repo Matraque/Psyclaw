@@ -1,54 +1,7 @@
 # Clinical memory
 
-This is a new-patient bootstrap file. Replace it with a short longitudinal synthesis as soon as enough meaningful information is available. Keep it current and easy to scan before every conversation; revise existing sections instead of accumulating a chronological log.
+This is a new-patient bootstrap file. Replace it with a compact, current synthesis once enough meaningful information is available. Its purpose is to let the agent recover the important cross-session understanding quickly, not to reproduce the conversation or maintain a complete history.
 
-## Current reason for support and priorities
+A useful memory usually captures the patient's present priorities, the broad time course and impact of the difficulties, recurring patterns and meaningful exceptions, what appears to help or worsen them, strengths and protective factors, important recent developments, and the most useful current direction. Include working formulations only when they add value, label them as tentative, and preserve competing explanations or important unknowns when relevant.
 
-- What the patient currently wants help with, preferably in their own terms
-- The problems with the greatest current impact
-
-## Current clinical picture
-
-- Concise description of reported experiences, symptoms, time course, variability, and functional impact
-- Relevant biological, psychological, relational, social, and environmental context
-
-## Concise timeline
-
-- Only the developments needed to understand how the current situation evolved
-
-## Recurring patterns and contexts
-
-- Triggers, amplifiers, maintaining cycles, exceptions, and situations in which the problem changes
-
-## Current functioning
-
-- Impact on daily life, relationships, responsibilities, self-care, and safety where relevant
-
-## Working formulation
-
-- Tentative hypotheses, explicitly labelled as such
-- Evidence that supports or challenges each important hypothesis
-- Plausible alternative explanations when relevant
-
-## Coping and response to previous approaches
-
-- Strategies that help, do not help, or may carry costs
-- Patient-reported response to prior support or treatment, without prescribing conclusions
-
-## Strengths and protective factors
-
-- Personal capacities, relationships, resources, commitments, and reasons for hope or safety
-
-## Important recent developments
-
-- Changes likely to affect the next conversation or the current formulation
-
-## Clinically meaningful unknowns
-
-- Missing information that could materially change understanding, safety assessment, or next steps
-
-## Current direction
-
-- One concise statement of the most useful next area of work
-
-Include only information likely to affect future understanding or care. Session detail belongs in `session_notes/`; stable personal facts belong in `patient_profile.md`; actions and goals belong in `care_plan.md`.
+Select and organise only what matters for this patient. Do not force fixed headings, fill every category, or accumulate a chronological log. Revise the synthesis when the understanding changes. Session detail belongs in `session_notes/`, stable facts in `patient_profile.md`, and agreed goals or actions in `care_plan.md`.

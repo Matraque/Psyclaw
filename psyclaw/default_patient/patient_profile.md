@@ -1,35 +1,7 @@
 # Patient profile
 
-This is a new-patient bootstrap file. Replace this guidance progressively with concise, stable facts learned naturally during conversation. Do not conduct a rigid intake questionnaire or invent information to complete every section.
+This is a new-patient bootstrap file. Replace it progressively with concise, stable facts learned naturally during conversation. Its purpose is to help future conversations understand who the patient is and which enduring parts of their life, care, preferences, relationships, responsibilities, strengths, and support network may matter.
 
-## Identification and communication
+Use only the information that is relevant for this particular patient. Do not conduct an intake checklist, try to cover every possible category, retain empty headings, or invent information for completeness. Choose whatever short sections or bullets make the resulting profile easiest to understand.
 
-- Name and form of address
-- Pronouns, if the patient wishes to provide them
-- Conversation language
-- Relevant communication preferences, accessibility needs, or boundaries
-
-## Living and social context
-
-- Country or region when relevant to care pathways or crisis resources
-- Relevant demographic and living context
-- Stable relationships and support network
-
-## Responsibilities and daily context
-
-- Occupation, studies, or major responsibilities
-
-## Relevant health and care context
-
-- Relevant medical and mental-health history reported by the patient
-- Current care providers and medications reported by the patient
-
-## Strengths and protective context
-
-- Enduring strengths, protective factors, and resources
-
-## Information to verify
-
-- Stable facts that remain uncertain, incomplete, or potentially outdated
-
-Record only information likely to improve future support. Attribute health history, medication, relationships, and other personal facts to the patient unless independently established. Mark uncertainty clearly. Do not include speculative diagnoses, transient session details, or material already better represented in `memory.md` or `care_plan.md`.
+Attribute personal and health information to the patient unless independently established, and mark uncertainty clearly. Transient session details belong in `session_notes/`, the evolving clinical understanding belongs in `memory.md`, and goals or actions belong in `care_plan.md`.

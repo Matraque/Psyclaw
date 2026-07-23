@@ -1,44 +1,7 @@
 # Care plan
 
-This is a new-patient bootstrap file. Replace it with a practical plan built collaboratively as the patient's priorities become clear. Keep it current when goals, interventions, precautions, or next steps change.
+This is a new-patient bootstrap file. Replace it with a practical plan built collaboratively when the patient's priorities and a useful next step become clear. The plan should capture what the patient wants to change, the limited focus currently agreed, any approach or experiment actually being tried, how progress may be recognised, relevant precautions or outside care, and what to revisit next.
 
-## Patient's goals
+Adapt the organisation and level of detail to the situation. Some patients may need only a goal and one next step; others may benefit from a baseline, several active approaches, or explicit barriers and safety considerations. Do not create empty sections merely to satisfy a template.
 
-- Goals in the patient's own terms
-- What meaningful improvement would look like in daily life
-
-## Current priorities and agreed focus
-
-- The limited number of issues currently being addressed
-- What has been explicitly agreed versus what is only being considered
-
-## Baseline and progress markers
-
-- Brief starting-point information
-- Observable or patient-meaningful indicators to review across time
-- Measurement methods that are proportionate and unlikely to intensify monitoring or perfectionism
-
-## Active approaches or experiments
-
-- Exercise, reflection, behavioural experiment, or support strategy
-- Rationale discussed with the patient
-- How and when it will be tried
-- Patient response and any relevant adjustment
-
-## Information still needed
-
-- Questions or assessments that could materially alter the plan
-
-## Barriers, risks, and precautions
-
-- Foreseeable obstacles, safety considerations, limits, and signs that outside help is needed
-
-## Care coordination
-
-- Relevant professional or medical support, referrals, and medication questions reserved for a qualified prescriber
-
-## Next session
-
-- Agreed next step and likely focus
-
-Do not invent goals, assign exercises that were not discussed, or treat a possibility as an agreement. Keep the plan proportionate: a small number of clear actions and meaningful progress markers is preferable to an exhaustive protocol.
+Never invent goals, assign exercises that were not discussed, or turn something being considered into an agreement. Keep the plan current, proportionate, and easy to act on.
