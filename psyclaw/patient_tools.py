@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from psyclaw.patient_paths import DEFAULT_PATIENT_DIRECTORY, PROJECT_DIRECTORY, configured_patient_root
 
-PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
-DEFAULT_PATIENT_DIRECTORY = PROJECT_DIRECTORY / ".psyclaw-data" / "patient"
-PATIENT_DIRECTORY = Path(
-    os.getenv("PSYCLAW_PATIENT_DIR", str(DEFAULT_PATIENT_DIRECTORY))
-).expanduser()
 DEFAULT_PATIENT_FILES_DIRECTORY = Path(__file__).resolve().parent / "default_patient"
 ALLOWED_SUFFIXES = {".md"}
 MAX_FILE_SIZE_BYTES = 128 * 1024
@@ -43,8 +38,9 @@ def get_date() -> dict[str, str]:
 
 def _patient_root() -> Path:
     """Return the canonical patient directory, creating it when necessary."""
-    PATIENT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    return PATIENT_DIRECTORY.resolve()
+    patient_directory = configured_patient_root()
+    patient_directory.mkdir(parents=True, exist_ok=True)
+    return patient_directory.resolve()
 
 
 def _normalise_relative_path(path: str, *, allow_root: bool = False) -> PurePosixPath:
