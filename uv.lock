@@ -1553,7 +1553,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "google-adk" },
+    { name = "google-adk", specifier = ">=1.14.0" },
     { name = "litellm", specifier = ">=1.80,<1.82.7" },
     { name = "python-dotenv" },
 ]

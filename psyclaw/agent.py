@@ -3,6 +3,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from google.adk.agents import Agent
+from google.adk.apps import App
 from google.adk.models.lite_llm import LiteLlm
 
 from psyclaw.instruction import build_instruction
@@ -30,3 +31,6 @@ root_agent = Agent(
         append_file,
     ],
 )
+
+
+app = App(name="psyclaw", root_agent=root_agent)
