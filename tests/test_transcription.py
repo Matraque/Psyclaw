@@ -45,10 +45,34 @@ class TranscriptionBoundaryTest(unittest.TestCase):
         with self.assertRaises(AttributeError):
             request.request_id = "another"  # type: ignore[misc]
 
-    def test_request_normalizes_bad_type_and_hard_size_limit_to_safe_errors(self) -> None:
-        with self.assertRaises(TranscriptionError) as context:
-            TranscriptionRequest(b"abc", "audio/webm; codecs=opus", "req-1")
-        self.assertEqual(context.exception.code, TranscriptionErrorCode.INVALID_REQUEST)
+    def test_request_canonicalizes_common_browser_content_types(self) -> None:
+        for content_type in (
+            "audio/webm; codecs=opus",
+            ' AUDIO/WEBM ; codecs="opus" ',
+            "audio/webm; codecs=opus; rate=48000",
+        ):
+            with self.subTest(content_type=content_type):
+                request = TranscriptionRequest(b"abc", content_type, "req-1")
+                self.assertEqual(request.content_type, "audio/webm")
+
+    def test_request_rejects_malformed_or_unbounded_content_type_parameters(self) -> None:
+        invalid_content_types = (
+            "audio/webm; codecs=opus; CODECS=vp9",
+            "audio/webm; codecs",
+            "audio/webm; codecs=",
+            "audio/webm; codecs=opus=extra",
+            "audio/webm; codecs=\x01opus",
+            "audio/webm; codecs=\"unterminated",
+            "audio/webm; a=1; b=2; c=3; d=4; e=5; f=6; g=7; h=8; i=9",
+            "audio/webm; codecs=" + "a" * 240,
+        )
+        for content_type in invalid_content_types:
+            with self.subTest(content_type=content_type):
+                with self.assertRaises(TranscriptionError) as context:
+                    TranscriptionRequest(b"abc", content_type, "req-1")
+                self.assertEqual(context.exception.code, TranscriptionErrorCode.INVALID_REQUEST)
+
+    def test_request_rejects_hard_size_limit_to_safe_error(self) -> None:
         with self.assertRaises(TranscriptionError) as context:
             TranscriptionRequest(
                 b"a" * (25 * 1024 * 1024 + 1), "audio/webm", "req-1"
@@ -105,6 +129,19 @@ class TranscriptionBoundaryTest(unittest.TestCase):
         self.assertEqual(context.exception.code, TranscriptionErrorCode.UNSUPPORTED_MEDIA_TYPE)
         self.assertEqual(service.requests, [])
 
+    def test_boundary_matches_browser_content_type_against_canonical_capability(self) -> None:
+        service = RecordingService()
+
+        result = asyncio.run(
+            transcribe(
+                service,
+                TranscriptionRequest(b"abc", "audio/webm; codecs=opus", "req-1"),
+            )
+        )
+
+        self.assertEqual(result.text, "A synthetic transcript.")
+        self.assertEqual(len(service.requests), 1)
+
     def test_boundary_rejects_oversized_audio_before_service_call(self) -> None:
         service = RecordingService()
         request = TranscriptionRequest(b"123456789", "audio/webm", "req-1")
@@ -133,6 +170,135 @@ class TranscriptionBoundaryTest(unittest.TestCase):
 
         self.assertEqual(result.text, "A synthetic transcript.")
         self.assertEqual(result.diagnostics, (diagnostic,))
+        self.assertIsNot(result, service.result)
+
+    def test_boundary_revalidates_mutated_provider_result_fields(self) -> None:
+        invalid_values = (
+            ("text", " "),
+            ("text", "a" * 100_001),
+            ("detected_language", "not_a_language_tag"),
+            ("diagnostics", (object(),)),
+        )
+        for attribute, value in invalid_values:
+            with self.subTest(attribute=attribute):
+                result = TranscriptionResult(text="Valid transcript")
+                object.__setattr__(result, attribute, value)
+                with self.assertRaises(TranscriptionError) as context:
+                    asyncio.run(
+                        transcribe(
+                            RecordingService(result),
+                            TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                        )
+                    )
+                self.assertEqual(
+                    context.exception.code,
+                    TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE,
+                )
+
+    def test_boundary_rejects_constructor_bypassed_provider_results(self) -> None:
+        invalid_values = (
+            ("", ()),
+            ("a" * 100_001, ()),
+            ("Valid transcript", (object(),)),
+        )
+        for text, diagnostics in invalid_values:
+            with self.subTest(text_length=len(text), diagnostics=diagnostics):
+                bypassed = TranscriptionResult.__new__(TranscriptionResult)
+                object.__setattr__(bypassed, "text", text)
+                object.__setattr__(bypassed, "detected_language", None)
+                object.__setattr__(bypassed, "diagnostics", diagnostics)
+
+                with self.assertRaises(TranscriptionError) as context:
+                    asyncio.run(
+                        transcribe(
+                            RecordingService(bypassed),
+                            TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                        )
+                    )
+
+                self.assertEqual(
+                    context.exception.code,
+                    TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE,
+                )
+
+    def test_boundary_revalidates_mutated_provider_diagnostics(self) -> None:
+        diagnostic = TranscriptionDiagnostic(
+            TranscriptionDiagnosticCode.PARTIAL_RESULT, True
+        )
+        object.__setattr__(diagnostic, "value", "not-a-boolean")
+        result = TranscriptionResult(text="Valid transcript", diagnostics=(diagnostic,))
+
+        with self.assertRaises(TranscriptionError) as context:
+            asyncio.run(
+                transcribe(
+                    RecordingService(result),
+                    TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                )
+            )
+
+        self.assertEqual(
+            context.exception.code, TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE
+        )
+
+    def test_boundary_rejects_mutated_diagnostics_list_without_iterating_it(self) -> None:
+        result = TranscriptionResult(text="Valid transcript")
+        object.__setattr__(result, "diagnostics", [])
+
+        with self.assertRaises(TranscriptionError) as context:
+            asyncio.run(
+                transcribe(
+                    RecordingService(result),
+                    TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                )
+            )
+
+        self.assertEqual(
+            context.exception.code, TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE
+        )
+
+    def test_boundary_rejects_oversized_diagnostics_tuple_before_reconstruction(self) -> None:
+        diagnostic = TranscriptionDiagnostic(
+            TranscriptionDiagnosticCode.PARTIAL_RESULT, True
+        )
+        result = TranscriptionResult(text="Valid transcript")
+        object.__setattr__(result, "diagnostics", (diagnostic,) * 17)
+
+        with self.assertRaises(TranscriptionError) as context:
+            asyncio.run(
+                transcribe(
+                    RecordingService(result),
+                    TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                )
+            )
+
+        self.assertEqual(
+            context.exception.code, TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE
+        )
+
+    def test_boundary_never_iterates_hostile_diagnostics_object(self) -> None:
+        class HostileIterable:
+            iterated = False
+
+            def __iter__(self) -> object:
+                self.iterated = True
+                raise AssertionError("diagnostics must not be iterated")
+
+        hostile_diagnostics = HostileIterable()
+        result = TranscriptionResult(text="Valid transcript")
+        object.__setattr__(result, "diagnostics", hostile_diagnostics)
+
+        with self.assertRaises(TranscriptionError) as context:
+            asyncio.run(
+                transcribe(
+                    RecordingService(result),
+                    TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                )
+            )
+
+        self.assertEqual(
+            context.exception.code, TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE
+        )
+        self.assertFalse(hostile_diagnostics.iterated)
 
     def test_provider_failure_has_a_safe_normalized_error(self) -> None:
         with self.assertRaises(TranscriptionError) as context:

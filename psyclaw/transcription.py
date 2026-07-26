@@ -20,8 +20,11 @@ _MAX_LANGUAGE_HINT_LENGTH = 32
 _MAX_TRANSCRIPT_LENGTH = 100_000
 _MAX_AUDIO_BYTES_LIMIT = 25 * 1024 * 1024
 _MAX_DIAGNOSTICS = 16
+_MAX_CONTENT_TYPE_LENGTH = 256
+_MAX_CONTENT_TYPE_PARAMETERS = 8
 _TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _CONTENT_TYPE_PATTERN = re.compile(r"^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$")
+_MIME_TOKEN_PATTERN = re.compile(r"^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
 _LANGUAGE_HINT_PATTERN = re.compile(r"^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$")
 
 
@@ -59,7 +62,7 @@ class TranscriptionCapabilities:
 
     def __post_init__(self) -> None:
         normalized_types = frozenset(
-            _validate_content_type(content_type)
+            _validate_content_type(content_type, allow_parameters=False)
             for content_type in self.supported_content_types
         )
         if not normalized_types:
@@ -247,16 +250,77 @@ async def transcribe(
         raise
     except Exception:
         raise TranscriptionError(TranscriptionErrorCode.TRANSCRIPTION_FAILED) from None
+    return _validate_provider_result(result)
+
+
+def _validate_content_type(content_type: str, *, allow_parameters: bool = True) -> str:
+    """Return a canonical media type after strictly parsing bounded parameters.
+
+    Parameters are accepted because browser uploads normally include values such
+    as ``audio/webm; codecs=opus``.  They are intentionally not part of service
+    capability matching: the configured capability is the canonical media type.
+    """
+    if (
+        not isinstance(content_type, str)
+        or not content_type
+        or len(content_type) > _MAX_CONTENT_TYPE_LENGTH
+        or any(ord(character) < 32 or ord(character) == 127 for character in content_type)
+    ):
+        raise ValueError("A content type must be a bounded printable string.")
+
+    parts = content_type.strip().split(";")
+    media_type = parts[0].strip().lower()
+    if not _CONTENT_TYPE_PATTERN.fullmatch(media_type):
+        raise ValueError("A content type must start with a valid media type.")
+    if not allow_parameters and len(parts) != 1:
+        raise ValueError("A capability content type cannot include parameters.")
+    if len(parts) - 1 > _MAX_CONTENT_TYPE_PARAMETERS:
+        raise ValueError("A content type has too many parameters.")
+
+    parameter_names: set[str] = set()
+    for raw_parameter in parts[1:]:
+        parameter = raw_parameter.strip()
+        if parameter.count("=") != 1:
+            raise ValueError("A content type parameter must have one value.")
+        name, value = (part.strip() for part in parameter.split("=", 1))
+        normalized_name = name.lower()
+        if (
+            not _MIME_TOKEN_PATTERN.fullmatch(name)
+            or not value
+            or normalized_name in parameter_names
+        ):
+            raise ValueError("A content type parameter is malformed.")
+        if value.startswith('"'):
+            if len(value) < 2 or not value.endswith('"') or '"' in value[1:-1]:
+                raise ValueError("A quoted content type parameter is malformed.")
+        elif not _MIME_TOKEN_PATTERN.fullmatch(value):
+            raise ValueError("A content type parameter value is malformed.")
+        parameter_names.add(normalized_name)
+    return media_type
+
+
+def _validate_provider_result(result: object) -> TranscriptionResult:
+    """Reconstruct provider output so frozen dataclasses are not trust anchors."""
     if not isinstance(result, TranscriptionResult):
         raise TranscriptionError(TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE)
-    return result
-
-
-def _validate_content_type(content_type: str) -> str:
-    normalized = content_type.strip().lower()
-    if not _CONTENT_TYPE_PATTERN.fullmatch(normalized):
-        raise ValueError("A content type must be an exact media type without parameters.")
-    return normalized
+    try:
+        provider_diagnostics = result.diagnostics
+        if (
+            type(provider_diagnostics) is not tuple
+            or len(provider_diagnostics) > _MAX_DIAGNOSTICS
+        ):
+            raise ValueError("Provider diagnostics must be a bounded tuple.")
+        diagnostics = tuple(
+            TranscriptionDiagnostic(diagnostic.code, diagnostic.value)
+            for diagnostic in provider_diagnostics
+        )
+        return TranscriptionResult(
+            text=result.text,
+            detected_language=result.detected_language,
+            diagnostics=diagnostics,
+        )
+    except Exception:
+        raise TranscriptionError(TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE) from None
 
 
 def _is_service(candidate: object) -> bool:
