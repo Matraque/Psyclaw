@@ -1,5 +1,6 @@
 import asyncio
 import unittest
+from unittest.mock import patch
 
 from psyclaw.transcription import (
     TranscriptionCapabilities,
@@ -73,11 +74,21 @@ class TranscriptionBoundaryTest(unittest.TestCase):
                 self.assertEqual(context.exception.code, TranscriptionErrorCode.INVALID_REQUEST)
 
     def test_request_rejects_hard_size_limit_to_safe_error(self) -> None:
-        with self.assertRaises(TranscriptionError) as context:
-            TranscriptionRequest(
-                b"a" * (25 * 1024 * 1024 + 1), "audio/webm", "req-1"
-            )
+        with patch("psyclaw.transcription._MAX_AUDIO_BYTES_LIMIT", 3):
+            with self.assertRaises(TranscriptionError) as context:
+                TranscriptionRequest(b"abcd", "audio/webm", "req-1")
         self.assertEqual(context.exception.code, TranscriptionErrorCode.AUDIO_TOO_LARGE)
+
+    def test_capabilities_allow_large_recordings_below_global_ceiling(self) -> None:
+        capabilities = TranscriptionCapabilities(
+            frozenset({"audio/webm"}), 100 * 1024 * 1024
+        )
+
+        self.assertEqual(capabilities.max_audio_bytes, 100 * 1024 * 1024)
+        with self.assertRaises(ValueError):
+            TranscriptionCapabilities(
+                frozenset({"audio/webm"}), 100 * 1024 * 1024 + 1
+            )
 
     def test_result_rejects_empty_text_and_hides_transcript_in_repr(self) -> None:
         with self.assertRaises(TranscriptionError) as context:
@@ -312,6 +323,56 @@ class TranscriptionBoundaryTest(unittest.TestCase):
         self.assertEqual(context.exception.code, TranscriptionErrorCode.TRANSCRIPTION_FAILED)
         self.assertNotIn("provider secret", str(context.exception))
         self.assertIsNone(context.exception.__cause__)
+        self.assertIsNone(context.exception.__context__)
+
+    def test_provider_transcription_error_is_rebuilt_without_exception_chain(self) -> None:
+        class ChainedFailingService(RecordingService):
+            async def transcribe(
+                self, request: TranscriptionRequest
+            ) -> TranscriptionResult:
+                try:
+                    raise RuntimeError("provider credential should stay private")
+                except RuntimeError as provider_error:
+                    raise TranscriptionError(
+                        TranscriptionErrorCode.PROVIDER_UNAVAILABLE
+                    ) from provider_error
+
+        with self.assertRaises(TranscriptionError) as context:
+            asyncio.run(
+                transcribe(
+                    ChainedFailingService(),
+                    TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                )
+            )
+
+        self.assertEqual(
+            context.exception.code, TranscriptionErrorCode.PROVIDER_UNAVAILABLE
+        )
+        self.assertIsNone(context.exception.__cause__)
+        self.assertIsNone(context.exception.__context__)
+
+    def test_provider_error_with_invalid_code_becomes_safe_generic_failure(self) -> None:
+        class InvalidErrorCodeService(RecordingService):
+            async def transcribe(
+                self, request: TranscriptionRequest
+            ) -> TranscriptionResult:
+                error = TranscriptionError(TranscriptionErrorCode.PROVIDER_UNAVAILABLE)
+                error.code = "provider-secret"  # type: ignore[assignment]
+                raise error
+
+        with self.assertRaises(TranscriptionError) as context:
+            asyncio.run(
+                transcribe(
+                    InvalidErrorCodeService(),
+                    TranscriptionRequest(b"abc", "audio/webm", "req-1"),
+                )
+            )
+
+        self.assertEqual(
+            context.exception.code, TranscriptionErrorCode.TRANSCRIPTION_FAILED
+        )
+        self.assertIsNone(context.exception.__cause__)
+        self.assertIsNone(context.exception.__context__)
 
     def test_registry_has_no_default_or_fallback_provider(self) -> None:
         registry = TranscriptionRegistry()

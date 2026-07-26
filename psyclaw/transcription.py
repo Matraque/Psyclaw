@@ -18,7 +18,7 @@ from typing import Any, Protocol
 _MAX_REQUEST_ID_LENGTH = 128
 _MAX_LANGUAGE_HINT_LENGTH = 32
 _MAX_TRANSCRIPT_LENGTH = 100_000
-_MAX_AUDIO_BYTES_LIMIT = 25 * 1024 * 1024
+_MAX_AUDIO_BYTES_LIMIT = 100 * 1024 * 1024
 _MAX_DIAGNOSTICS = 16
 _MAX_CONTENT_TYPE_LENGTH = 256
 _MAX_CONTENT_TYPE_PARAMETERS = 8
@@ -244,12 +244,24 @@ async def transcribe(
         raise TranscriptionError(TranscriptionErrorCode.UNSUPPORTED_MEDIA_TYPE)
     if len(request.audio) > capabilities.max_audio_bytes:
         raise TranscriptionError(TranscriptionErrorCode.AUDIO_TOO_LARGE)
+    normalized_error: TranscriptionError | None = None
     try:
         result = await provider_transcribe(request)
-    except TranscriptionError:
-        raise
+    except TranscriptionError as error:
+        code = (
+            error.code
+            if isinstance(error.code, TranscriptionErrorCode)
+            else TranscriptionErrorCode.TRANSCRIPTION_FAILED
+        )
+        normalized_error = TranscriptionError(code)
     except Exception:
-        raise TranscriptionError(TranscriptionErrorCode.TRANSCRIPTION_FAILED) from None
+        normalized_error = TranscriptionError(
+            TranscriptionErrorCode.TRANSCRIPTION_FAILED
+        )
+    if normalized_error is not None:
+        # Raise outside the provider exception handler so neither __cause__ nor
+        # __context__ retains provider-owned details in logs or error objects.
+        raise normalized_error from None
     return _validate_provider_result(result)
 
 
