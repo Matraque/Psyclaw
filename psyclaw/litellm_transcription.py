@@ -43,7 +43,7 @@ _LITELLM_AUDIO_INPUTS = {
 
 @dataclass(frozen=True)
 class LiteLLMTranscriptionConfiguration:
-    """All configuration required to make one provider-neutral STT request."""
+    """All configuration required to make one STT request."""
 
     model: str
     api_key: str = field(repr=False)
