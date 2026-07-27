@@ -1546,6 +1546,7 @@ name = "psyclaw"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "google-adk" },
     { name = "litellm" },
     { name = "python-dotenv" },
@@ -1553,6 +1554,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.139,<0.140" },
     { name = "google-adk", specifier = ">=2.5.0,<3.0.0" },
     { name = "litellm", specifier = ">=1.80,<1.82.7" },
     { name = "python-dotenv" },

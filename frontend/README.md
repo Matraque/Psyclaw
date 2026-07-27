@@ -10,6 +10,7 @@ The browser receives only these explicit public connection values:
 - `VITE_ADK_URL`
 - `VITE_ADK_APP_NAME`
 - `VITE_ADK_USER_ID`
+- `VITE_STT_URL` (optional; the local speech-to-text service)
 
 Do not put a model credential, provider credential, patient record, or a real
 user identifier in a `VITE_*` value. This UI does not choose a model,
@@ -42,6 +43,30 @@ security boundary.
 cd frontend
 npm run dev
 ```
+
+## Local speech-to-text
+
+The microphone sends an in-memory recording to a separate loopback service.
+The browser never receives its credentials. Add only generic STT settings to
+the private `psyclaw/.env` file:
+
+```bash
+PSYCLAW_STT_MODEL=provider/model-name
+PSYCLAW_STT_API_KEY=replace-with-a-real-key
+# Optional
+PSYCLAW_STT_API_BASE=https://your-local-or-provider-endpoint
+```
+
+Run the local service in another terminal. It accepts browser audio formats up
+to 100 MiB. There is no shorter recording timer.
+
+```bash
+uv run uvicorn psyclaw.transcription_api:app --host 127.0.0.1 --port 8001
+```
+
+Set `VITE_STT_URL=http://127.0.0.1:8001` in `frontend/.env.local` to enable
+the microphone. A transcription is inserted into the composer for review and
+is never sent automatically.
 
 The three direct-ADK settings must all be present before the composer renders.
 They point Assistant UI's `createAdkStream` and `createAdkSessionAdapter` to

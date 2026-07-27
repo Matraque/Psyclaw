@@ -4,8 +4,9 @@ export type ConnectionConfig =
       adkUrl: string;
       appName: string;
       userId: string;
+      sttUrl?: string;
     }
-  | { mode: "demo" }
+  | { mode: "demo"; sttUrl?: string }
   | { mode: "disconnected"; missing: string[] };
 
 type PublicEnvironment = Record<string, string | boolean | undefined>;
@@ -39,6 +40,10 @@ function isLocalAdkUrl(value: string) {
   }
 }
 
+function isLocalSttUrl(value: string) {
+  return isLocalAdkUrl(value);
+}
+
 function readString(environment: PublicEnvironment, key: (typeof keys)[number]) {
   const value = environment[key];
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -47,15 +52,19 @@ function readString(environment: PublicEnvironment, key: (typeof keys)[number]) 
 export function getConnectionConfig(
   environment: PublicEnvironment = import.meta.env,
 ): ConnectionConfig {
-  if (environment.VITE_PSYCLAW_DEMO === "true") return { mode: "demo" };
-
   const adkUrl = readString(environment, "VITE_ADK_URL");
   const appName = readString(environment, "VITE_ADK_APP_NAME");
   const userId = readString(environment, "VITE_ADK_USER_ID");
+  const sttUrl = typeof environment.VITE_STT_URL === "string" && isLocalSttUrl(environment.VITE_STT_URL.trim())
+    ? environment.VITE_STT_URL.trim()
+    : undefined;
+  if (environment.VITE_PSYCLAW_DEMO === "true") {
+    return { mode: "demo", ...(sttUrl ? { sttUrl } : {}) };
+  }
   const validAdkUrl = adkUrl && isLocalAdkUrl(adkUrl);
 
   if (validAdkUrl && appName && userId) {
-    return { mode: "connected", adkUrl, appName, userId };
+    return { mode: "connected", adkUrl, appName, userId, ...(sttUrl ? { sttUrl } : {}) };
   }
 
   return {
