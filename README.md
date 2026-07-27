@@ -6,7 +6,7 @@ OSS AI psychologist with local, persistent memory.
 
 ```bash
 uv sync
-uv run adk web
+uv run psyclaw-adk-web
 ```
 
 Set `MISTRAL_API_KEY` in `psyclaw/.env`. Patient records are stored locally in
