@@ -30,7 +30,7 @@ root. The agents directory is that repository root, which contains the
 the Vite development origin:
 
 ```bash
-uv run adk web --host 127.0.0.1 --port 8000 --allow_origins http://127.0.0.1:5173 .
+uv run psyclaw-adk-web --host 127.0.0.1 --port 8000 --allow-origin http://127.0.0.1:5173
 ```
 
 Copy `.env.example` to `.env.local`, replace the user ID with a synthetic local
@@ -47,10 +47,10 @@ The three direct-ADK settings must all be present before the composer renders.
 They point Assistant UI's `createAdkStream` and `createAdkSessionAdapter` to
 the same ADK Web server, so its session API remains the history authority.
 
-`adk web` defaults to local `.adk` storage when no explicit session service is
-provided. If a later ticket needs an explicit SQLite location or persistent
-session-retention policy, configure it on that same ADK command line; this UI
-does not create or manage that database.
+`psyclaw-adk-web` starts the official ADK Web server with ADK's SQLite session
+service explicitly located at `<PSYCLAW_PATIENT_DIR>/.adk/session.db` (or the
+default private patient directory). Assistant UI does not create or manage the
+database; ADK remains the session-history authority.
 
 ## Credential-free UI check
 

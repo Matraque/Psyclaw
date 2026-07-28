@@ -5,10 +5,13 @@ description = "Simple ADK agent using Mistral through LiteLLM"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "google-adk>=1.14.0",
+    "google-adk>=2.5.0,<3.0.0",
     "litellm>=1.80,<1.82.7",
     "python-dotenv",
 ]
+
+[project.scripts]
+psyclaw-adk-web = "psyclaw.adk_web:main"
 
 [build-system]
 requires = ["hatchling"]
