@@ -129,6 +129,5 @@ class PsyclawServerTest(unittest.TestCase):
         self.assertEqual(allowed.headers.get("access-control-allow-origin"), self.allowed_origin)
         self.assertNotIn("access-control-allow-origin", hostile.headers)
 
-
 if __name__ == "__main__":
     unittest.main()
