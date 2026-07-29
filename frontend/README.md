@@ -11,7 +11,7 @@ The browser receives only these explicit public connection values:
 - `VITE_ADK_USER_ID`
 - `VITE_STT_URL` (optional; the local speech-to-text service)
 
-Do not put a model credential, provider credential, patient record, or a real
+Do not put a model credential, provider credential, user record, or a real
 user identifier in a `VITE_*` value. This UI does not choose a model,
 transcription provider, or fallback.
 
@@ -74,7 +74,7 @@ They point Assistant UI's `createAdkStream` and `createAdkSessionAdapter` to
 the same Psyclaw server, so ADK's session API remains the history authority.
 
 `psyclaw-server` starts the official ADK API server with SQLite sessions at
-`<PSYCLAW_PATIENT_DIR>/.adk/session.db` (or the default private patient
+`<PSYCLAW_USER_DIR>/.adk/session.db` (or the default private user
 directory). Assistant UI does not create or manage the database; ADK remains
 the session-history authority.
 
@@ -87,7 +87,7 @@ VITE_PSYCLAW_DEMO=true
 ```
 
 The demo uses an in-browser deterministic response only. It is not a therapist,
-does not contact an ADK server, and must not be used with real patient data.
+does not contact an ADK server, and must not be used with real user data.
 
 ## Validation
 

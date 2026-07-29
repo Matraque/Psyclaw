@@ -224,7 +224,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
     async def test_uri_and_server_launcher_use_explicit_adk_sqlite_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             patient_directory = Path(temporary_directory) / "private espace é"
-            with patch.dict("os.environ", {"PSYCLAW_PATIENT_DIR": str(patient_directory)}):
+            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(patient_directory)}):
                 uri = get_session_service_uri()
                 arguments = server.build_server_arguments(
                     host="127.0.0.1", port=8123, allow_origins=("http://localhost:5173",)

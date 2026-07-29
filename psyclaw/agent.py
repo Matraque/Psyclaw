@@ -40,7 +40,7 @@ root_agent = Agent(
     name="psyclaw_agent",
     model=_create_chat_model(),
     instruction=build_instruction,
-    description="Conversational assistant with local patient-record memory.",
+    description="Conversational assistant with local user memory.",
     tools=[
         list_files,
         read_file,

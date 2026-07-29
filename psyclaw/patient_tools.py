@@ -9,17 +9,17 @@ from typing import Any
 
 
 PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
-DEFAULT_PATIENT_DIRECTORY = PROJECT_DIRECTORY / ".psyclaw-data" / "patient"
-PATIENT_DIRECTORY = Path(
-    os.getenv("PSYCLAW_PATIENT_DIR", str(DEFAULT_PATIENT_DIRECTORY))
+DEFAULT_USER_DIRECTORY = PROJECT_DIRECTORY / ".psyclaw-data" / "user"
+USER_DIRECTORY = Path(
+    os.getenv("PSYCLAW_USER_DIR", str(DEFAULT_USER_DIRECTORY))
 ).expanduser()
-DEFAULT_PATIENT_FILES_DIRECTORY = Path(__file__).resolve().parent / "default_patient"
+DEFAULT_USER_FILES_DIRECTORY = Path(__file__).resolve().parent / "default_user"
 ALLOWED_SUFFIXES = {".md"}
 MAX_FILE_SIZE_BYTES = 128 * 1024
 MAX_CONTEXT_CHARS_PER_FILE = 8_000
 CORE_RECORD_PATHS = (
     "references.md",
-    "patient_profile.md",
+    "user_profile.md",
     "memory.md",
     "care_plan.md",
 )
@@ -41,10 +41,10 @@ def get_date() -> dict[str, str]:
     }
 
 
-def _patient_root() -> Path:
-    """Return the canonical patient directory, creating it when necessary."""
-    PATIENT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    return PATIENT_DIRECTORY.resolve()
+def _user_root() -> Path:
+    """Return the canonical user directory, creating it when necessary."""
+    USER_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    return USER_DIRECTORY.resolve()
 
 
 def _normalise_relative_path(path: str, *, allow_root: bool = False) -> PurePosixPath:
@@ -62,7 +62,7 @@ def _normalise_relative_path(path: str, *, allow_root: bool = False) -> PurePosi
 
     candidate = PurePosixPath(cleaned_path)
     if candidate.is_absolute() or any(part in {"", ".", ".."} for part in candidate.parts):
-        raise PatientFileError("The path must remain relative to the patient directory.")
+        raise PatientFileError("The path must remain relative to the user directory.")
     if any(part.startswith(".") for part in candidate.parts):
         raise PatientFileError("Hidden files and directories are not allowed.")
     return candidate
@@ -74,7 +74,7 @@ def _resolve_patient_file(path: str, *, must_exist: bool = False) -> tuple[Path,
     if relative_path.suffix.lower() not in ALLOWED_SUFFIXES:
         raise PatientFileError("Only Markdown (.md) files are allowed.")
 
-    root = _patient_root()
+    root = _user_root()
     requested_path = root / relative_path
     current_path = root
     for part in relative_path.parts:
@@ -86,7 +86,7 @@ def _resolve_patient_file(path: str, *, must_exist: bool = False) -> tuple[Path,
     try:
         resolved_path.relative_to(root)
     except ValueError as exc:
-        raise PatientFileError("The path escapes the patient directory.") from exc
+        raise PatientFileError("The path escapes the user directory.") from exc
 
     if must_exist and not resolved_path.is_file():
         raise PatientFileError(f"File not found: {relative_path.as_posix()}")
@@ -94,9 +94,9 @@ def _resolve_patient_file(path: str, *, must_exist: bool = False) -> tuple[Path,
 
 
 def _resolve_patient_directory(path: str = "") -> Path:
-    """Resolve a patient subdirectory without permitting symbolic links."""
+    """Resolve a user subdirectory without permitting symbolic links."""
     relative_path = _normalise_relative_path(path, allow_root=True)
-    root = _patient_root()
+    root = _user_root()
     requested_path = root / relative_path
     current_path = root
     for part in relative_path.parts:
@@ -110,9 +110,9 @@ def _resolve_patient_directory(path: str = "") -> Path:
     try:
         resolved_path.relative_to(root)
     except ValueError as exc:
-        raise PatientFileError("The path escapes the patient directory.") from exc
+        raise PatientFileError("The path escapes the user directory.") from exc
     if not resolved_path.is_dir():
-        raise PatientFileError("The requested path is not a patient directory.")
+        raise PatientFileError("The requested path is not a user directory.")
     return resolved_path
 
 
@@ -125,16 +125,17 @@ def _read_text(path: Path) -> str:
 
 
 def _initialise_patient_workspace() -> bool:
-    """Seed a private patient workspace once without overwriting existing data."""
-    root = _patient_root()
+    """Seed a private user workspace once without overwriting existing data."""
+    root = _user_root()
+
     marker_path = root / WORKSPACE_MARKER
     if marker_path.is_file():
         return False
-    if not DEFAULT_PATIENT_FILES_DIRECTORY.is_dir():
-        raise PatientFileError("Packaged default patient files are missing.")
+    if not DEFAULT_USER_FILES_DIRECTORY.is_dir():
+        raise PatientFileError("Packaged default user files are missing.")
 
-    for source_path in sorted(DEFAULT_PATIENT_FILES_DIRECTORY.rglob("*")):
-        relative_path = source_path.relative_to(DEFAULT_PATIENT_FILES_DIRECTORY)
+    for source_path in sorted(DEFAULT_USER_FILES_DIRECTORY.rglob("*")):
+        relative_path = source_path.relative_to(DEFAULT_USER_FILES_DIRECTORY)
         target_path = root / relative_path
         if source_path.is_dir():
             target_path.mkdir(parents=True, exist_ok=True)
@@ -166,7 +167,7 @@ def list_files(path: str = "") -> dict[str, Any]:
         path: Optional relative subdirectory, for example ``session_notes``.
     """
     try:
-        root = _patient_root()
+        root = _user_root()
         directory = _resolve_patient_directory(path)
 
         entries = []
@@ -269,7 +270,7 @@ def get_context() -> dict[str, Any]:
     """
     try:
         workspace_bootstrapped = _initialise_patient_workspace()
-        root = _patient_root()
+        root = _user_root()
         session_notes_directory = root / "session_notes"
         notes: list[Path] = []
         if session_notes_directory.is_dir() and not session_notes_directory.is_symlink():

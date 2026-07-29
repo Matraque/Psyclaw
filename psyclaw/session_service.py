@@ -13,17 +13,17 @@ from google.adk.sessions.sqlite_session_service import SqliteSessionService
 
 
 PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
-DEFAULT_PATIENT_DIRECTORY = PROJECT_DIRECTORY / ".psyclaw-data" / "patient"
+DEFAULT_USER_DIRECTORY = PROJECT_DIRECTORY / ".psyclaw-data" / "user"
 ADK_DIRECTORY_NAME = ".adk"
 SESSION_DATABASE_NAME = "session.db"
 
 
-def get_patient_directory() -> Path:
-    """Return the configured private patient directory without creating it."""
-    configured_directory = os.getenv("PSYCLAW_PATIENT_DIR")
+def get_user_directory() -> Path:
+    """Return the configured private user directory without creating it."""
+    configured_directory = os.getenv("PSYCLAW_USER_DIR")
     if configured_directory:
         return Path(configured_directory).expanduser()
-    return DEFAULT_PATIENT_DIRECTORY
+    return DEFAULT_USER_DIRECTORY
 
 
 def _restrict_directory_permissions(directory: Path) -> None:
@@ -41,7 +41,7 @@ def get_session_database_path(
     patient tool allowlist.  A symlink at that boundary is rejected so the
     database cannot be redirected outside the configured private workspace.
     """
-    root = (patient_directory or get_patient_directory()).expanduser()
+    root = (patient_directory or get_user_directory()).expanduser()
     root_was_created = not root.exists()
     root.mkdir(parents=True, exist_ok=True)
     if root_was_created:

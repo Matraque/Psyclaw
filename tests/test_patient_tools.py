@@ -11,7 +11,7 @@ class PatientToolsTest(unittest.TestCase):
         for record_path in patient_tools.CORE_RECORD_PATHS:
             with self.subTest(record_path=record_path):
                 self.assertTrue(
-                    (patient_tools.DEFAULT_PATIENT_FILES_DIRECTORY / record_path).is_file()
+                    (patient_tools.DEFAULT_USER_FILES_DIRECTORY / record_path).is_file()
                 )
 
 

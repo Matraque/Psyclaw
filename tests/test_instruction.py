@@ -43,7 +43,7 @@ class InstructionTest(unittest.TestCase):
 
         self.assertIn("Current UTC date: 2026-07-23", instruction)
         self.assertIn("session_notes/2026-07-23.md", instruction)
-        self.assertIn('<patient-record path="memory.md">', instruction)
+        self.assertIn('<user-record path="memory.md">', instruction)
         self.assertNotIn("{current_date}", instruction)
         self.assertNotIn("{patient_records}", instruction)
 
