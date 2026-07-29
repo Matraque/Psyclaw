@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-psyclaw-adk-web = "psyclaw.adk_web:main"
+psyclaw-server = "psyclaw.server:main"
 
 [build-system]
 requires = ["hatchling"]

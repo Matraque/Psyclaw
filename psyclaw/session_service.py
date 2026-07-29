@@ -67,6 +67,6 @@ def create_session_service(
 
 
 def get_session_service_uri(patient_directory: Path | None = None) -> str:
-    """Build the SQLite URI expected by ADK Web for the private database."""
+    """Build the SQLite URI used by the local ADK API server."""
     database_path = get_session_database_path(patient_directory).resolve()
     return f"sqlite:///{database_path.as_posix()}"

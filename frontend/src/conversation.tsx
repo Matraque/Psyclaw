@@ -185,9 +185,9 @@ function DisconnectedState({ missing }: { missing: string[] }) {
       </p>
       <div>
         <p className="eyebrow">Development setup</p>
-        <h1 id="connection-title">Connect a local ADK server.</h1>
+        <h1 id="connection-title">Connect a local Psyclaw server.</h1>
         <p>
-          Start the existing ADK Web server, then add the public connection values below to
+          Start the local Psyclaw server, then add the public connection values below to
           <code>frontend/.env.local</code>. This local MVP accepts only loopback HTTP(S)
           ADK URLs. Browser code never receives provider credentials.
         </p>
