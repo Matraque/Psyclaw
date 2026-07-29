@@ -87,6 +87,7 @@ function Composer({ sttUrl, transcriptionClient }: { sttUrl?: string; transcript
     () => (sttUrl ? createTranscriptionClient(sttUrl) : undefined),
     [sttUrl],
   );
+  const voiceClient = transcriptionClient ?? configuredTranscriptionClient;
 
   const insertTranscript = (transcript: string) => {
     const composerText = aui.composer().getState().text;
@@ -111,7 +112,12 @@ function Composer({ sttUrl, transcriptionClient }: { sttUrl?: string; transcript
           cancelOnEscape
         />
         <div className="composer-actions">
-          <VoiceRecorder client={transcriptionClient ?? configuredTranscriptionClient} onTranscript={insertTranscript} />
+          {voiceClient && (
+            <VoiceRecorder
+              client={voiceClient}
+              onTranscript={insertTranscript}
+            />
+          )}
           <AuiIf condition={(state) => state.thread.isRunning}>
             <ComposerPrimitive.Cancel className="stop-button">Stop</ComposerPrimitive.Cancel>
           </AuiIf>

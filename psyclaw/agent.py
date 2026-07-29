@@ -6,6 +6,7 @@ from google.adk.agents import Agent
 from google.adk.apps import App
 from google.adk.models.lite_llm import LiteLlm
 
+from psyclaw.config import ChatConfiguration, ConfigurationError, load_chat_configuration
 from psyclaw.instruction import build_instruction
 from psyclaw.patient_tools import (
     append_file,
@@ -14,16 +15,32 @@ from psyclaw.patient_tools import (
     write_file,
 )
 
-load_dotenv(Path(__file__).resolve().parent / ".env")
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral/mistral-medium-latest")
+
+def _create_chat_model() -> LiteLlm:
+    """Create LiteLLM with only explicitly configured generic overrides."""
+    try:
+        configuration = load_chat_configuration(os.environ)
+    except ConfigurationError:
+        # ``psyclaw-server`` and the normal launcher validate this setting before
+        # loading the app. Keeping the ADK object importable also lets discovery
+        # and static project checks run without a credentialed local .env file.
+        configuration = ChatConfiguration(model="")
+
+    options: dict[str, str] = {"model": configuration.model}
+    if configuration.api_key is not None:
+        options["api_key"] = configuration.api_key
+    if configuration.api_base is not None:
+        options["api_base"] = configuration.api_base
+    return LiteLlm(**options)
 
 
 root_agent = Agent(
     name="psyclaw_agent",
-    model=LiteLlm(model=MISTRAL_MODEL),
+    model=_create_chat_model(),
     instruction=build_instruction,
-    description="Mistral AI conversational assistant with local patient-record memory.",
+    description="Conversational assistant with local patient-record memory.",
     tools=[
         list_files,
         read_file,

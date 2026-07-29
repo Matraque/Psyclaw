@@ -54,7 +54,7 @@ def create_local_transcription_service(
 ) -> LiteLLMTranscriptionService:
     """Build the one configured STT service without provider defaults."""
     if environment is None:
-        load_dotenv(Path(__file__).resolve().parent / ".env")
+        load_dotenv(Path(__file__).resolve().parents[1] / ".env")
         environment = os.environ
     capabilities = TranscriptionCapabilities(
         supported_content_types=SUPPORTED_CONTENT_TYPES,
