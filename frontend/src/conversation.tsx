@@ -8,6 +8,7 @@ import {
   ThreadPrimitive,
   type ChatModelAdapter,
   useLocalRuntime,
+  useAui,
 } from "@assistant-ui/react";
 import {
   createAdkSessionAdapter,
@@ -17,6 +18,8 @@ import {
 import { useMemo } from "react";
 
 import type { ConnectionConfig } from "./config";
+import { createTranscriptionClient, type TranscriptionClient } from "./transcription";
+import { VoiceRecorder } from "./voice-recorder";
 
 const demoModel: ChatModelAdapter = {
   async run() {
@@ -72,7 +75,20 @@ function AssistantMessage() {
   );
 }
 
-function Composer() {
+function Composer({ sttUrl, transcriptionClient }: { sttUrl?: string; transcriptionClient?: TranscriptionClient }) {
+  const aui = useAui();
+  const configuredTranscriptionClient = useMemo(
+    () => (sttUrl ? createTranscriptionClient(sttUrl) : undefined),
+    [sttUrl],
+  );
+
+  const insertTranscript = (transcript: string) => {
+    const composerText = aui.composer().getState().text;
+    aui.composer().setText(
+      composerText.trim() ? `${composerText.trim()}\n\n${transcript}` : transcript,
+    );
+  };
+
   return (
     <ThreadPrimitive.ViewportFooter className="composer-region">
       <AuiIf condition={(state) => state.thread.isRunning}>
@@ -89,6 +105,7 @@ function Composer() {
           cancelOnEscape
         />
         <div className="composer-actions">
+          <VoiceRecorder client={transcriptionClient ?? configuredTranscriptionClient} onTranscript={insertTranscript} />
           <AuiIf condition={(state) => state.thread.isRunning}>
             <ComposerPrimitive.Cancel className="stop-button">Stop</ComposerPrimitive.Cancel>
           </AuiIf>
@@ -100,7 +117,7 @@ function Composer() {
   );
 }
 
-function ConversationSurface({ mode }: { mode: "connected" | "demo" }) {
+function ConversationSurface({ mode, sttUrl, transcriptionClient }: { mode: "connected" | "demo"; sttUrl?: string; transcriptionClient?: TranscriptionClient }) {
   return (
     <section className="conversation" aria-label="Conversation">
       <StatusLine mode={mode} />
@@ -116,14 +133,14 @@ function ConversationSurface({ mode }: { mode: "connected" | "demo" }) {
           <ThreadPrimitive.Messages>
             {({ message }) => (message.role === "user" ? <UserMessage /> : <AssistantMessage />)}
           </ThreadPrimitive.Messages>
-          <Composer />
+          <Composer sttUrl={sttUrl} transcriptionClient={transcriptionClient} />
         </ThreadPrimitive.Viewport>
       </ThreadPrimitive.Root>
     </section>
   );
 }
 
-function ConnectedConversation({ config }: { config: Extract<ConnectionConfig, { mode: "connected" }> }) {
+function ConnectedConversation({ config, transcriptionClient }: { config: Extract<ConnectionConfig, { mode: "connected" }>; transcriptionClient?: TranscriptionClient }) {
   const session = useMemo(
     () =>
       createAdkSessionAdapter({
@@ -145,16 +162,16 @@ function ConnectedConversation({ config }: { config: Extract<ConnectionConfig, {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ConversationSurface mode="connected" />
+      <ConversationSurface mode="connected" sttUrl={config.sttUrl} transcriptionClient={transcriptionClient} />
     </AssistantRuntimeProvider>
   );
 }
 
-function DemoConversation() {
+function DemoConversation({ sttUrl, transcriptionClient }: { sttUrl?: string; transcriptionClient?: TranscriptionClient }) {
   const runtime = useLocalRuntime(demoModel);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ConversationSurface mode="demo" />
+      <ConversationSurface mode="demo" sttUrl={sttUrl} transcriptionClient={transcriptionClient} />
     </AssistantRuntimeProvider>
   );
 }
@@ -183,8 +200,8 @@ function DisconnectedState({ missing }: { missing: string[] }) {
   );
 }
 
-export function Conversation({ config }: { config: ConnectionConfig }) {
-  if (config.mode === "connected") return <ConnectedConversation config={config} />;
-  if (config.mode === "demo") return <DemoConversation />;
+export function Conversation({ config, transcriptionClient }: { config: ConnectionConfig; transcriptionClient?: TranscriptionClient }) {
+  if (config.mode === "connected") return <ConnectedConversation config={config} transcriptionClient={transcriptionClient} />;
+  if (config.mode === "demo") return <DemoConversation sttUrl={config.sttUrl} transcriptionClient={transcriptionClient} />;
   return <DisconnectedState missing={config.missing} />;
 }

@@ -11,6 +11,10 @@ class ResizeObserverStub {
 }
 
 globalThis.ResizeObserver = ResizeObserverStub;
+Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+  configurable: true,
+  value: () => {},
+});
 
 describe("Conversation", () => {
   it("keeps the standard Assistant UI composer keyboard-accessible in credential-free demo mode", async () => {

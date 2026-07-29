@@ -25,6 +25,17 @@ describe("getConnectionConfig", () => {
     });
   });
 
+  it("accepts an explicit loopback URL for the local transcription service", () => {
+    expect(
+      getConnectionConfig({
+        VITE_ADK_URL: "http://127.0.0.1:8000",
+        VITE_ADK_APP_NAME: "psyclaw",
+        VITE_ADK_USER_ID: "local-synthetic-user",
+        VITE_STT_URL: "http://127.0.0.1:8001",
+      }),
+    ).toMatchObject({ mode: "connected", sttUrl: "http://127.0.0.1:8001" });
+  });
+
   it.each([
     "https://adk.example.test",
     "ftp://127.0.0.1:8000",
@@ -43,5 +54,14 @@ describe("getConnectionConfig", () => {
 
   it("allows the credential-free demo only when it is intentionally enabled", () => {
     expect(getConnectionConfig({ VITE_PSYCLAW_DEMO: "true" })).toEqual({ mode: "demo" });
+  });
+
+  it("allows an explicit loopback transcription service in the credential-free demo", () => {
+    expect(
+      getConnectionConfig({
+        VITE_PSYCLAW_DEMO: "true",
+        VITE_STT_URL: "http://127.0.0.1:8001",
+      }),
+    ).toEqual({ mode: "demo", sttUrl: "http://127.0.0.1:8001" });
   });
 });
