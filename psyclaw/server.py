@@ -71,7 +71,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--allow-origin", action="append", default=[])
     options = parser.parse_args(argv)
-    load_dotenv(AGENT_DIRECTORY / ".env")
+    load_dotenv(AGENT_DIRECTORY.parent / ".env")
     try:
         load_chat_configuration(os.environ)
         arguments = build_server_arguments(

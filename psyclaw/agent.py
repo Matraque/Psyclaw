@@ -15,7 +15,7 @@ from psyclaw.patient_tools import (
     write_file,
 )
 
-load_dotenv(Path(__file__).resolve().parent / ".env")
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 
 def _create_chat_model() -> LiteLlm:
