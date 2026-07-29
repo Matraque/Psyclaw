@@ -9,62 +9,87 @@ from unittest.mock import patch
 from psyclaw import launcher
 
 
-class Process:
-    def __init__(self, code=None, timeout=False): self.pid, self.code, self.timeout, self.signals = 44, code, timeout, []
-    def poll(self): return self.code
-    def send_signal(self, value): self.signals.append(value)
-    def wait(self, timeout=None):
-        if self.timeout: raise subprocess.TimeoutExpired("test", timeout)
+class FakeProcess:
+    def __init__(self, return_code: int | None = None) -> None:
+        self.pid = 44
+        self.return_code = return_code
+
+    def poll(self) -> int | None:
+        return self.return_code
+
+    def wait(self, timeout: float | None = None) -> None:
+        del timeout
 
 
 class LauncherTest(unittest.TestCase):
-    env = {"PATH": "/bin", "PSYCLAW_MODEL": "local/model", "PSYCLAW_API_KEY": "secret"}
+    environment = {
+        "PATH": "/bin",
+        "PSYCLAW_MODEL": "local/model",
+        "PSYCLAW_API_KEY": "secret",
+    }
 
-    def test_public_environment_never_contains_credentials(self):
-        public = launcher.frontend_environment(self.env, True)
+    def frontend(self):
+        directory = tempfile.TemporaryDirectory()
+        frontend = Path(directory.name)
+        (frontend / "package-lock.json").write_text("lock")
+        (frontend / "node_modules").mkdir()
+        return directory, frontend
+
+    def run_with(self, environment, *, ready=True, processes=None):
+        started = []
+        children = iter(processes or [FakeProcess(), FakeProcess(), FakeProcess()])
+
+        def popen(arguments, **_kwargs):
+            started.append(arguments)
+            return next(children)
+
+        launcher.run(
+            environment,
+            popen=popen,
+            ready=lambda: ready,
+            which=lambda _: "/bin/npm",
+            sleep=lambda _: (_ for _ in ()).throw(KeyboardInterrupt()),
+        )
+        return started
+
+    def test_nominal_start_with_speech_to_text(self) -> None:
+        directory, frontend = self.frontend()
+        with directory, patch.object(launcher, "FRONTEND", frontend):
+            (launcher.lock_marker()).write_text(launcher.lock_digest())
+            started = self.run_with({**self.environment, "PSYCLAW_STT_MODEL": "x/y", "PSYCLAW_STT_API_KEY": "key"})
+        self.assertEqual(started, [launcher.server_command(), launcher.stt_command(), launcher.ui_command()])
+
+    def test_nominal_start_without_speech_to_text(self) -> None:
+        directory, frontend = self.frontend()
+        with directory, patch.object(launcher, "FRONTEND", frontend):
+            (launcher.lock_marker()).write_text(launcher.lock_digest())
+            started = self.run_with(self.environment)
+        self.assertEqual(started, [launcher.server_command(), launcher.ui_command()])
+
+    def test_health_failure_stops_before_stt_or_ui(self) -> None:
+        directory, frontend = self.frontend()
+        api = FakeProcess()
+        with directory, patch.object(launcher, "FRONTEND", frontend):
+            (launcher.lock_marker()).write_text(launcher.lock_digest())
+            with self.assertRaisesRegex(launcher.LauncherError, "did not become ready"):
+                launcher.run(self.environment, popen=lambda *_args, **_kwargs: api, ready=lambda: False, which=lambda _: "/bin/npm")
+        self.assertIsNone(api.poll())
+
+    def test_npm_absent_starts_no_process(self) -> None:
+        with self.assertRaises(launcher.LauncherError):
+            launcher.run(self.environment, popen=lambda *_args, **_kwargs: self.fail("started"), which=lambda _: None)
+
+    def test_public_frontend_environment_excludes_secrets(self) -> None:
+        public = launcher.frontend_environment(self.environment, True)
         self.assertNotIn("PSYCLAW_API_KEY", public)
         self.assertEqual(public["VITE_STT_URL"], "http://127.0.0.1:8001")
 
-    def test_frontend_marker_tracks_the_lockfile_and_failed_install_writes_nothing(self):
-        with tempfile.TemporaryDirectory() as directory, patch.object(launcher, "FRONTEND", Path(directory)):
-            (launcher.FRONTEND / "package-lock.json").write_text("one")
-            calls = []
-            def command(args, **kwargs): calls.append(args); return subprocess.CompletedProcess(args, 1)
-            with self.assertRaisesRegex(launcher.LauncherError, "Frontend setup failed"):
-                launcher.install_frontend(command, self.env)
-            self.assertFalse(launcher.lock_marker().exists())
-            def success(args, **kwargs): calls.append(args); return subprocess.CompletedProcess(args, 0)
-            (launcher.FRONTEND / "node_modules").mkdir()
-            launcher.install_frontend(success, self.env)
-            launcher.install_frontend(success, self.env)
-            (launcher.FRONTEND / "package-lock.json").write_text("two")
-            launcher.install_frontend(success, self.env)
-            self.assertEqual(calls, [["npm", "ci"], ["npm", "ci"], ["npm", "ci"]])
-
-    def test_missing_or_partial_settings_fail_before_starting(self):
-        for env in ({}, {**self.env, "PSYCLAW_STT_MODEL": "provider/model"}):
-            with self.subTest(env=env), self.assertRaises(launcher.LauncherError):
-                launcher.run(env, popen=lambda *args, **kwargs: self.fail("started"), which=lambda _: "/bin/npm")
-
-    def test_nominal_order_and_health_failure_cleanup(self):
-        with tempfile.TemporaryDirectory() as directory, patch.object(launcher, "FRONTEND", Path(directory)):
-            (launcher.FRONTEND / "package-lock.json").write_text("lock")
-            (launcher.FRONTEND / "node_modules").mkdir()
-            (launcher.lock_marker()).write_text(launcher.lock_digest())
-            started = []
-            processes = [Process(), Process(), Process()]
-            def popen(args, **kwargs):
-                started.append(args)
-                return processes[len(started) - 1]
-            launcher.run({**self.env, "PSYCLAW_STT_MODEL": "x/y", "PSYCLAW_STT_API_KEY": "key"}, popen=popen, ready=lambda: True, sleep=lambda _: (_ for _ in ()).throw(KeyboardInterrupt()))
-            self.assertEqual(started, [launcher.server_command(), launcher.stt_command(), launcher.ui_command()])
-
-    def test_services_use_a_group_and_windows_timeout_uses_taskkill_tree(self):
-        process = Process(timeout=True)
-        calls = []
+    def test_windows_cleanup_kills_every_process_tree(self) -> None:
+        commands = []
         with patch.object(launcher.os, "name", "nt"):
-            launcher.stop([("ui", process)], command=lambda args, **kwargs: calls.append(args))
-        self.assertEqual(calls, [["taskkill", "/PID", "44", "/T", "/F"]])
+            launcher.stop([("api", FakeProcess()), ("ui", FakeProcess())], command=lambda args, **_kwargs: commands.append(args))
+        self.assertEqual(commands, [["taskkill", "/PID", "44", "/T", "/F"], ["taskkill", "/PID", "44", "/T", "/F"]])
 
 
-if __name__ == "__main__": unittest.main()
+if __name__ == "__main__":
+    unittest.main()

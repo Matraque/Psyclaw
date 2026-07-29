@@ -35,9 +35,15 @@ def main() -> None:
         raise SystemExit(1) from None
 
 
-def run(environment: Mapping[str, str], *, popen=subprocess.Popen,
-        command=subprocess.run, ready: Callable[[], bool] | None = None,
-        which=shutil.which, sleep=time.sleep) -> None:
+def run(
+    environment: Mapping[str, str],
+    *,
+    popen=subprocess.Popen,
+    command=subprocess.run,
+    ready: Callable[[], bool] | None = None,
+    which=shutil.which,
+    sleep=time.sleep,
+) -> None:
     try:
         load_chat_configuration(environment)
         stt_enabled = has_complete_stt_configuration(environment)
@@ -140,7 +146,10 @@ def stop(services, *, command=subprocess.run) -> None:
         if process.poll() is None:
             try:
                 if os.name == "nt":
-                    process.send_signal(getattr(signal, "CTRL_BREAK_EVENT", signal.SIGTERM))
+                    command(
+                        ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                        check=False,
+                    )
                 else:
                     os.killpg(process.pid, signal.SIGTERM)
             except OSError:
@@ -149,7 +158,5 @@ def stop(services, *, command=subprocess.run) -> None:
         try:
             process.wait(timeout=3)
         except subprocess.TimeoutExpired:
-            if os.name == "nt":
-                command(["taskkill", "/PID", str(process.pid), "/T", "/F"], check=False)
-            else:
+            if os.name != "nt":
                 os.killpg(process.pid, signal.SIGKILL)

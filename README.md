@@ -7,10 +7,11 @@ by OpenClaw and Hermes, and built with Google ADK.
 
 ## Why Psyclaw
 
-Its founder has known these difficulties personally. Getting support can save a
-life, but late appointments, unavailable practitioners, cost, and fear of
-judgement create friction. Psyclaw is available on demand. It is open source so
-we can make this kind of support more accessible and improve it together.
+I built Psyclaw after struggling to find a practitioner who accepted new
+patients. I know that getting support can save a life. Practitioners can be
+unavailable, appointments months away, and cost or fear of judgment can create
+friction. Psyclaw is available on demand. It is open source so we can improve
+this support together.
 
 A [2026 Pew Research Center survey](https://www.pewresearch.org/chart/search-and-work-are-the-most-common-uses-for-chatbots-1-in-10-use-these-tools-for-emotional-support/) found that 10% of U.S. adults had used an AI chatbot for emotional support or advice.
 
