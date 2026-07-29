@@ -15,9 +15,15 @@ import {
   createAdkStream,
   useAdkRuntime,
 } from "@assistant-ui/react-google-adk";
-import { useMemo } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ConnectionConfig } from "./config";
+import {
+  readSessionId,
+  restoreSession,
+  type SessionRestorationResult,
+  syncSessionIdInUrl,
+} from "./session-url";
 import { createTranscriptionClient, type TranscriptionClient } from "./transcription";
 import { VoiceRecorder } from "./voice-recorder";
 
@@ -117,10 +123,25 @@ function Composer({ sttUrl, transcriptionClient }: { sttUrl?: string; transcript
   );
 }
 
-function ConversationSurface({ mode, sttUrl, transcriptionClient }: { mode: "connected" | "demo"; sttUrl?: string; transcriptionClient?: TranscriptionClient }) {
+function ConversationSurface({
+  mode,
+  sttUrl,
+  transcriptionClient,
+  restorationWarning,
+}: {
+  mode: "connected" | "demo";
+  sttUrl?: string;
+  transcriptionClient?: TranscriptionClient;
+  restorationWarning?: boolean;
+}) {
   return (
     <section className="conversation" aria-label="Conversation">
       <StatusLine mode={mode} />
+      {restorationWarning ? (
+        <p className="session-warning" role="status">
+          This conversation is no longer available. A new conversation has been started.
+        </p>
+      ) : null}
       <ThreadPrimitive.Root className="thread">
         <ThreadPrimitive.Viewport className="thread-viewport" turnAnchor="top">
           <AuiIf condition={(state) => state.thread.isEmpty}>
@@ -140,7 +161,44 @@ function ConversationSurface({ mode, sttUrl, transcriptionClient }: { mode: "con
   );
 }
 
+export type SessionRestorationState = "pending" | "ready" | "retryable-error";
+
+export function SessionRestorationGate({
+  state,
+  onRetry,
+  children,
+}: {
+  state: SessionRestorationState;
+  onRetry: () => void;
+  children: ReactNode;
+}) {
+  if (state === "pending") {
+    return (
+      <section className="session-state" aria-live="polite" aria-label="Reopening conversation">
+        Reopening your conversation…
+      </section>
+    );
+  }
+
+  if (state === "retryable-error") {
+    return (
+      <section className="session-state" role="alert">
+        <p>We could not reopen this conversation. Please check your local server and try again.</p>
+        <button className="session-retry" type="button" onClick={onRetry}>Retry</button>
+      </section>
+    );
+  }
+
+  return children;
+}
+
 function ConnectedConversation({ config, transcriptionClient }: { config: Extract<ConnectionConfig, { mode: "connected" }>; transcriptionClient?: TranscriptionClient }) {
+  const [initialSessionId] = useState(() => readSessionId(window.location.search));
+  const [restorationWarning, setRestorationWarning] = useState(false);
+  const [restorationState, setRestorationState] = useState<SessionRestorationState>(
+    initialSessionId ? "pending" : "ready",
+  );
+  const restorationStartedRef = useRef(false);
   const session = useMemo(
     () =>
       createAdkSessionAdapter({
@@ -150,6 +208,9 @@ function ConnectedConversation({ config, transcriptionClient }: { config: Extrac
       }),
     [config.adkUrl, config.appName, config.userId],
   );
+  const onThreadIdChange = useCallback((threadId: string | undefined) => {
+    syncSessionIdInUrl(threadId);
+  }, []);
   const runtime = useAdkRuntime({
     stream: createAdkStream({
       api: config.adkUrl,
@@ -158,11 +219,42 @@ function ConnectedConversation({ config, transcriptionClient }: { config: Extrac
     }),
     sessionAdapter: session.adapter,
     load: session.load,
+    onThreadIdChange,
   });
+
+  const applyRestorationResult = useCallback((result: SessionRestorationResult) => {
+    if (result.status === "not-found") {
+      syncSessionIdInUrl(undefined);
+      setRestorationWarning(true);
+      setRestorationState("ready");
+      return;
+    }
+
+    setRestorationState(result.status === "restored" ? "ready" : "retryable-error");
+  }, []);
+
+  const reopenConversation = useCallback(async () => {
+    if (!initialSessionId) return;
+    setRestorationState("pending");
+    applyRestorationResult(await restoreSession(initialSessionId, runtime.threads));
+  }, [applyRestorationResult, initialSessionId, runtime]);
+
+  useEffect(() => {
+    if (!initialSessionId || restorationStartedRef.current) return;
+    restorationStartedRef.current = true;
+    void reopenConversation();
+  }, [initialSessionId, reopenConversation]);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ConversationSurface mode="connected" sttUrl={config.sttUrl} transcriptionClient={transcriptionClient} />
+      <SessionRestorationGate state={restorationState} onRetry={() => void reopenConversation()}>
+        <ConversationSurface
+          mode="connected"
+          sttUrl={config.sttUrl}
+          transcriptionClient={transcriptionClient}
+          restorationWarning={restorationWarning}
+        />
+      </SessionRestorationGate>
     </AssistantRuntimeProvider>
   );
 }
