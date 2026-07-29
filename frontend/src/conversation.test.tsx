@@ -68,4 +68,10 @@ describe("Conversation", () => {
 
     expect(screen.getByRole("textbox", { name: "Message Psyclaw" })).toBeInTheDocument();
   });
+
+  it("hides the microphone until a local transcription service is configured", () => {
+    render(<Conversation config={{ mode: "demo" }} />);
+
+    expect(screen.queryByRole("button", { name: "Record a voice message" })).not.toBeInTheDocument();
+  });
 });

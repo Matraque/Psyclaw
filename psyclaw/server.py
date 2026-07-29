@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections.abc import Sequence
 from ipaddress import IPv4Address
 from ipaddress import IPv4Network
@@ -10,8 +11,10 @@ from ipaddress import IPv6Address
 from ipaddress import ip_address
 from pathlib import Path
 
+from dotenv import load_dotenv
 from google.adk.cli import main as adk_main
 
+from psyclaw.config import ConfigurationError, load_chat_configuration
 from psyclaw.session_service import get_session_service_uri
 
 
@@ -68,7 +71,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--allow-origin", action="append", default=[])
     options = parser.parse_args(argv)
+    load_dotenv(AGENT_DIRECTORY / ".env")
     try:
+        load_chat_configuration(os.environ)
         arguments = build_server_arguments(
             host=options.host,
             port=options.port,
@@ -81,3 +86,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         args=arguments,
         prog_name="psyclaw-server",
     )
+
+
+if __name__ == "__main__":
+    main()

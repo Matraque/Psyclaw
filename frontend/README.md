@@ -17,6 +17,11 @@ transcription provider, or fallback.
 
 ## Local development
 
+For normal use, follow the root README and run `uv run psyclaw`. It starts the
+local API, optional speech-to-text, and this UI together.
+
+The commands below are only for working on the UI itself.
+
 Install the locked frontend dependencies:
 
 ```bash

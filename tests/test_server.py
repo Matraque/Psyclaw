@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,7 +20,13 @@ class PsyclawServerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             patient_directory = Path(temporary_directory) / "patient"
             with (
-                patch.dict("os.environ", {"PSYCLAW_PATIENT_DIR": str(patient_directory)}),
+                patch.dict(
+                    "os.environ",
+                    {
+                        "PSYCLAW_PATIENT_DIR": str(patient_directory),
+                        "PSYCLAW_MODEL": "test/model",
+                    },
+                ),
                 patch("psyclaw.server.adk_main") as adk_main,
             ):
                 server.main(
@@ -40,6 +47,17 @@ class PsyclawServerTest(unittest.TestCase):
         self.assertIn("--allow_origins", arguments)
         self.assertNotIn("--with_ui", arguments)
         self.assertEqual(adk_main.call_args.kwargs["prog_name"], "psyclaw-server")
+
+    def test_direct_server_fails_early_without_a_chat_model(self) -> None:
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("psyclaw.server.load_dotenv"),
+            patch("sys.stderr", new_callable=io.StringIO) as stderr,
+            self.assertRaises(SystemExit),
+        ):
+            server.main([])
+
+        self.assertIn("Set PSYCLAW_MODEL", stderr.getvalue())
 
     def test_defaults_to_loopback_and_never_enables_the_development_ui(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

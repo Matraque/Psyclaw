@@ -1,7 +1,7 @@
 [project]
 name = "psyclaw"
 version = "0.1.0"
-description = "Simple ADK agent using Mistral through LiteLLM"
+description = "A local AI psychologist built with Google ADK and LiteLLM"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -12,6 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
+psyclaw = "psyclaw.launcher:main"
 psyclaw-server = "psyclaw.server:main"
 
 [build-system]
