@@ -39,7 +39,7 @@ SUPPORTED_CONTENT_TYPES = frozenset(
         "video/webm",
     }
 )
-LOCAL_UI_ORIGINS = ("http://127.0.0.1:5173", "http://localhost:5173")
+LOCAL_UI_ORIGINS = ("http://127.0.0.1:5173",)
 
 
 class TranscriptionService(Protocol):
@@ -82,11 +82,20 @@ def create_transcription_api(
 
     @app.post("/transcriptions")
     async def create_transcription(request: Request) -> JSONResponse:
+        if not _is_allowed_origin(request.headers.get("origin")):
+            return _error_response(TranscriptionErrorCode.INVALID_REQUEST, status_code=403)
+
+        content_type = _canonical_content_type(request.headers.get("content-type", ""))
+        if content_type is None:
+            return _error_response(TranscriptionErrorCode.INVALID_REQUEST)
+
         service = _service_or_error(service_factory)
         if isinstance(service, JSONResponse):
             return service
         if not isinstance(getattr(service, "capabilities", None), TranscriptionCapabilities):
             return _error_response(TranscriptionErrorCode.CONFIGURATION_ERROR)
+        if content_type not in service.capabilities.supported_content_types:
+            return _error_response(TranscriptionErrorCode.UNSUPPORTED_MEDIA_TYPE)
 
         content_length = request.headers.get("content-length")
         if content_length is not None:
@@ -109,7 +118,7 @@ def create_transcription_api(
                 service,
                 TranscriptionRequest(
                     audio=audio,
-                    content_type=request.headers.get("content-type", ""),
+                    content_type=content_type,
                     request_id=secrets.token_hex(16),
                 ),
             )
@@ -121,6 +130,23 @@ def create_transcription_api(
         return JSONResponse({"text": result.text})
 
     return app
+
+
+def _is_allowed_origin(origin: str | None) -> bool:
+    """Allow same-process non-browser clients and the explicit loopback UI only."""
+    return origin is None or origin in LOCAL_UI_ORIGINS
+
+
+def _canonical_content_type(value: str) -> str | None:
+    """Validate and normalize a MIME header before consuming a request body."""
+    try:
+        return TranscriptionRequest(
+            audio=b"mime-check",
+            content_type=value,
+            request_id="mime-check",
+        ).content_type
+    except TranscriptionError:
+        return None
 
 
 async def _read_bounded_audio(request: Request, maximum_size: int) -> bytes | None:
@@ -150,7 +176,9 @@ def _service_or_error(
         return _error_response(TranscriptionErrorCode.CONFIGURATION_ERROR)
 
 
-def _error_response(code: TranscriptionErrorCode) -> JSONResponse:
+def _error_response(
+    code: TranscriptionErrorCode, *, status_code: int | None = None
+) -> JSONResponse:
     status_codes = {
         TranscriptionErrorCode.INVALID_REQUEST: 400,
         TranscriptionErrorCode.UNSUPPORTED_MEDIA_TYPE: 415,
@@ -162,7 +190,7 @@ def _error_response(code: TranscriptionErrorCode) -> JSONResponse:
         TranscriptionErrorCode.INVALID_PROVIDER_RESPONSE: 502,
     }
     return JSONResponse(
-        status_code=status_codes.get(code, 502),
+        status_code=status_code if status_code is not None else status_codes.get(code, 502),
         content={"error": {"code": code.value}},
     )
 

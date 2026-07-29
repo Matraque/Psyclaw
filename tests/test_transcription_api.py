@@ -1,7 +1,9 @@
 import re
 import unittest
+from collections.abc import Awaitable, Callable
 
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from psyclaw.transcription import (
     TranscriptionCapabilities,
@@ -99,6 +101,61 @@ class TranscriptionApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": "invalid_request"}})
 
+    def test_rejects_a_hostile_browser_origin_before_reading_the_body(self) -> None:
+        app = create_transcription_api(RecordingService)
+        receive, receive_calls = _unreadable_receive()
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/transcriptions",
+                "headers": [
+                    (b"origin", b"https://evil.example"),
+                    (b"content-type", b"audio/webm"),
+                ],
+            },
+            receive,
+        )
+
+        response = _run_endpoint(app, request)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(receive_calls[0], 0)
+
+    def test_rejects_unsupported_canonical_mime_before_reading_the_body(self) -> None:
+        app = create_transcription_api(RecordingService)
+        receive, receive_calls = _unreadable_receive()
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/transcriptions",
+                "headers": [(b"content-type", b"audio/mp4")],
+            },
+            receive,
+        )
+
+        response = _run_endpoint(app, request)
+
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(receive_calls[0], 0)
+
+    def test_accepts_the_deterministic_loopback_ui_origin(self) -> None:
+        service = RecordingService()
+        client = TestClient(create_transcription_api(lambda: service))
+
+        response = client.post(
+            "/transcriptions",
+            content=b"synthetic-audio",
+            headers={
+                "content-type": "audio/webm; codecs=opus",
+                "origin": "http://127.0.0.1:5173",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(service.requests), 1)
+
     def test_configuration_failure_is_safe(self) -> None:
         secret = "configuration-secret-that-must-not-escape"
 
@@ -120,3 +177,20 @@ class TranscriptionApiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _unreadable_receive() -> tuple[Callable[[], Awaitable[dict[str, object]]], list[int]]:
+    calls = [0]
+
+    async def receive() -> dict[str, object]:
+        calls[0] += 1
+        raise AssertionError("The request body must not be read for this rejection.")
+
+    return receive, calls
+
+
+def _run_endpoint(app: object, request: Request):
+    import asyncio
+
+    route = next(route for route in app.routes if route.path == "/transcriptions")
+    return asyncio.run(route.endpoint(request))

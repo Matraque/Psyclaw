@@ -1,6 +1,6 @@
 # Psyclaw Assistant UI shell
 
-This is Psyclaw's product-facing, text-only local interface. It connects
+This is Psyclaw's product-facing local interface. It connects
 directly to the existing Python Google ADK Web server. ADK Web remains the
 separate developer surface for event traces and debugging; it is not copied or
 modified here.
@@ -57,8 +57,10 @@ PSYCLAW_STT_API_KEY=replace-with-a-real-key
 PSYCLAW_STT_API_BASE=https://your-local-or-provider-endpoint
 ```
 
-Run the local service in another terminal. It accepts browser audio formats up
-to 100 MiB. There is no shorter recording timer.
+Run the local service in another terminal. It accepts supported browser audio
+formats up to 100 MiB. There is no shorter recording timer. The UI runs only
+at `http://127.0.0.1:5173`; it stops instead of selecting another port so the
+local service can safely recognize it.
 
 ```bash
 uv run uvicorn psyclaw.transcription_api:app --host 127.0.0.1 --port 8001

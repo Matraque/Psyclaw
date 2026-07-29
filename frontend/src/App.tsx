@@ -12,8 +12,6 @@ export function App() {
       </header>
       <Conversation config={config} />
       <footer className="app-footer">
-        <span>Text only</span>
-        <span aria-hidden="true">·</span>
         <span>Assistant UI + Google ADK</span>
       </footer>
     </main>
