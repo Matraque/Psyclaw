@@ -67,6 +67,9 @@ Then, start everything with one command:
 uv run psyclaw
 ```
 
+On the first run, Psyclaw installs its own dependencies in a local, isolated
+environment.
+
 Your browser opens at `http://127.0.0.1:5173`. Press `Ctrl+C` to stop.
 
 ## **How it works**
