@@ -19,7 +19,7 @@ from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.genai import types
 from pydantic import PrivateAttr
 
-from psyclaw import adk_web
+from psyclaw import server
 from psyclaw.session_service import (
     create_session_service,
     get_session_database_path,
@@ -221,12 +221,12 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(patient_directory.stat().st_mode & 0o777, 0o750)
             self.assertEqual(adk_directory.stat().st_mode & 0o777, 0o700)
 
-    async def test_uri_and_web_launcher_use_explicit_adk_sqlite_service(self) -> None:
+    async def test_uri_and_server_launcher_use_explicit_adk_sqlite_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             patient_directory = Path(temporary_directory) / "private espace é"
             with patch.dict("os.environ", {"PSYCLAW_PATIENT_DIR": str(patient_directory)}):
                 uri = get_session_service_uri()
-                arguments = adk_web.build_adk_web_arguments(
+                arguments = server.build_server_arguments(
                     host="127.0.0.1", port=8123, allow_origins=("http://localhost:5173",)
                 )
 
@@ -234,7 +234,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(
                 arguments,
                 [
-                    "web",
+                    "api_server",
                     "--host",
                     "127.0.0.1",
                     "--port",
@@ -244,7 +244,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
                     uri,
                     "--allow_origins",
                     "http://localhost:5173",
-                    str(adk_web.PROJECT_DIRECTORY),
+                    str(server.AGENT_DIRECTORY),
                 ],
             )
             service = create_session_service_from_options(

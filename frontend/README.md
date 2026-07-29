@@ -1,9 +1,8 @@
 # Psyclaw Assistant UI shell
 
-This is Psyclaw's product-facing local interface. It connects
-directly to the existing Python Google ADK Web server. ADK Web remains the
-separate developer surface for event traces and debugging; it is not copied or
-modified here.
+This is Psyclaw's product-facing local interface. It connects to Psyclaw's
+local server, which exposes the Google ADK API. The product server does not
+serve a development interface.
 
 The browser receives only these explicit public connection values:
 
@@ -25,13 +24,11 @@ cd frontend
 npm ci
 ```
 
-In another terminal, start the existing ADK Web server from the repository
-root. The agents directory is that repository root, which contains the
-`psyclaw/` ADK application package. Keep it bound to localhost and allow only
-the Vite development origin:
+In another terminal, start Psyclaw's local server from the repository root.
+Keep it bound to localhost and allow only the Vite development origin:
 
 ```bash
-uv run psyclaw-adk-web --host 127.0.0.1 --port 8000 --allow-origin http://127.0.0.1:5173
+uv run psyclaw-server --host 127.0.0.1 --port 8000 --allow-origin http://127.0.0.1:5173
 ```
 
 Copy `.env.example` to `.env.local`, replace the user ID with a synthetic local
@@ -72,12 +69,12 @@ is never sent automatically.
 
 The three direct-ADK settings must all be present before the composer renders.
 They point Assistant UI's `createAdkStream` and `createAdkSessionAdapter` to
-the same ADK Web server, so its session API remains the history authority.
+the same Psyclaw server, so ADK's session API remains the history authority.
 
-`psyclaw-adk-web` starts the official ADK Web server with ADK's SQLite session
-service explicitly located at `<PSYCLAW_PATIENT_DIR>/.adk/session.db` (or the
-default private patient directory). Assistant UI does not create or manage the
-database; ADK remains the session-history authority.
+`psyclaw-server` starts the official ADK API server with SQLite sessions at
+`<PSYCLAW_PATIENT_DIR>/.adk/session.db` (or the default private patient
+directory). Assistant UI does not create or manage the database; ADK remains
+the session-history authority.
 
 ## Credential-free UI check
 
