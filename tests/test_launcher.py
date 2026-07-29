@@ -109,10 +109,32 @@ class LauncherTest(unittest.TestCase):
         with self.assertRaises(launcher.LauncherError):
             launcher.run(self.environment, popen=lambda *_args, **_kwargs: self.fail("started"), which=lambda _: None)
 
+    def test_incomplete_clone_fails_before_process_or_lockfile_access(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, patch.object(launcher, "FRONTEND", Path(directory)):
+            with self.assertRaisesRegex(launcher.LauncherError, "complete repository clone"):
+                launcher.run(self.environment, popen=lambda *_args, **_kwargs: self.fail("started"), which=lambda _: "/bin/npm")
+
     def test_public_frontend_environment_excludes_secrets(self) -> None:
         public = launcher.frontend_environment(self.environment, True)
         self.assertNotIn("PSYCLAW_API_KEY", public)
         self.assertEqual(public["VITE_STT_URL"], "http://127.0.0.1:8001")
+
+    def test_npm_environment_keeps_network_settings_but_not_application_secrets(self) -> None:
+        environment = {
+            **self.environment,
+            "HTTPS_PROXY": "https://proxy.example",
+            "NPM_CONFIG_CAFILE": "/certs/company.pem",
+            "VITE_API_KEY": "browser-secret",
+            "PSYCLAW_STT_API_KEY": "speech-secret",
+            "OPENAI_API_KEY": "provider-secret",
+        }
+        npm = launcher.npm_environment(environment)
+        self.assertEqual(npm["HTTPS_PROXY"], "https://proxy.example")
+        self.assertEqual(npm["NPM_CONFIG_CAFILE"], "/certs/company.pem")
+        self.assertNotIn("PSYCLAW_API_KEY", npm)
+        self.assertNotIn("PSYCLAW_STT_API_KEY", npm)
+        self.assertNotIn("VITE_API_KEY", npm)
+        self.assertNotIn("OPENAI_API_KEY", npm)
 
     def test_frontend_install_marker_follows_the_lockfile(self) -> None:
         directory, frontend = self.frontend()

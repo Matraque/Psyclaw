@@ -51,6 +51,7 @@ def run(
         raise LauncherError(str(error)) from None
     if which("npm") is None:
         raise LauncherError("Install Node.js (including npm), then run Psyclaw again.")
+    validate_frontend_checkout()
     install_frontend(command, environment)
     services: list[tuple[str, object]] = []
     try:
@@ -81,6 +82,13 @@ def lock_marker() -> Path:
     return FRONTEND / "node_modules" / ".psyclaw-package-lock.sha256"
 
 
+def validate_frontend_checkout() -> None:
+    if not FRONTEND.is_dir() or not (FRONTEND / "package-lock.json").is_file():
+        raise LauncherError(
+            "Frontend files are missing. Run Psyclaw from a complete repository clone."
+        )
+
+
 def lock_digest() -> str:
     return hashlib.sha256((FRONTEND / "package-lock.json").read_bytes()).hexdigest()
 
@@ -91,7 +99,7 @@ def install_frontend(command, environment: Mapping[str, str]) -> None:
         return
     result = command(
         ["npm", "ci"], cwd=FRONTEND,
-        env=frontend_environment(environment, False), check=False, text=True,
+        env=npm_environment(environment), check=False, text=True,
     )
     if result.returncode != 0:
         raise LauncherError("Frontend setup failed. Run `npm ci` in frontend and try again.")
@@ -122,6 +130,21 @@ def frontend_environment(environment: Mapping[str, str], stt_enabled: bool) -> d
     if stt_enabled:
         public["VITE_STT_URL"] = f"http://{HOST}:{STT_PORT}"
     return public
+
+
+def npm_environment(environment: Mapping[str, str]) -> dict[str, str]:
+    system_keys = (
+        "PATH", "SYSTEMROOT", "COMSPEC", "PATHEXT", "HOME", "USERPROFILE",
+        "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "TMPDIR",
+    )
+    network_keys = (
+        "HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "NO_PROXY",
+        "no_proxy", "NPM_CONFIG_REGISTRY", "NPM_CONFIG_PROXY",
+        "NPM_CONFIG_HTTPS_PROXY", "NPM_CONFIG_NOPROXY", "NPM_CONFIG_CAFILE",
+        "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE",
+    )
+    keys = system_keys + network_keys
+    return {key: environment[key] for key in keys if environment.get(key)}
 
 
 def start(popen, args: Sequence[str], cwd: Path, env: Mapping[str, str]):
