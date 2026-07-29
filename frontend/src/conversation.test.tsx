@@ -27,12 +27,12 @@ describe("Conversation", () => {
     const composer = screen.getByRole("textbox", { name: "Message Psyclaw" });
     expect(composer).toHaveAttribute("placeholder", "Write what is on your mind…");
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(await screen.findByRole("heading", { name: "Take your time." })).toBeVisible();
 
     fireEvent.change(composer, { target: { value: "Synthetic check" } });
     fireEvent.keyDown(composer, { key: "Enter" });
 
     expect(await screen.findByText(/No message was sent to an ADK server/)).toBeVisible();
-    expect(screen.getByText("Local interface demonstration")).toHaveAttribute("aria-live", "polite");
   });
 
   it("blocks the composer while reopening a conversation", () => {
