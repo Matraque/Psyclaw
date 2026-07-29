@@ -40,15 +40,6 @@ const demoModel: ChatModelAdapter = {
   },
 };
 
-function StatusLine({ mode }: { mode: "connected" | "demo" }) {
-  return (
-    <p className="connection-status" aria-live="polite">
-      <span aria-hidden="true" className={mode === "demo" ? "status-dot demo" : "status-dot"} />
-      {mode === "demo" ? "Local interface demonstration" : "Connected to local ADK"}
-    </p>
-  );
-}
-
 function UserMessage() {
   return (
     <MessagePrimitive.Root className="message message-user">
@@ -130,19 +121,16 @@ function Composer({ sttUrl, transcriptionClient }: { sttUrl?: string; transcript
 }
 
 function ConversationSurface({
-  mode,
   sttUrl,
   transcriptionClient,
   restorationWarning,
 }: {
-  mode: "connected" | "demo";
   sttUrl?: string;
   transcriptionClient?: TranscriptionClient;
   restorationWarning?: boolean;
 }) {
   return (
     <section className="conversation" aria-label="Conversation">
-      <StatusLine mode={mode} />
       {restorationWarning ? (
         <p className="session-warning" role="status">
           This conversation is no longer available. A new conversation has been started.
@@ -152,9 +140,7 @@ function ConversationSurface({
         <ThreadPrimitive.Viewport className="thread-viewport" turnAnchor="top">
           <AuiIf condition={(state) => state.thread.isEmpty}>
             <div className="empty-state">
-              <p className="eyebrow">Private local session</p>
-              <h1>Start where you are.</h1>
-              <p>Your conversation uses the providers and local session service you configure.</p>
+              <h1>Take your time.</h1>
             </div>
           </AuiIf>
           <ThreadPrimitive.Messages>
@@ -255,7 +241,6 @@ function ConnectedConversation({ config, transcriptionClient }: { config: Extrac
     <AssistantRuntimeProvider runtime={runtime}>
       <SessionRestorationGate state={restorationState} onRetry={() => void reopenConversation()}>
         <ConversationSurface
-          mode="connected"
           sttUrl={config.sttUrl}
           transcriptionClient={transcriptionClient}
           restorationWarning={restorationWarning}
@@ -269,7 +254,7 @@ function DemoConversation({ sttUrl, transcriptionClient }: { sttUrl?: string; tr
   const runtime = useLocalRuntime(demoModel);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ConversationSurface mode="demo" sttUrl={sttUrl} transcriptionClient={transcriptionClient} />
+      <ConversationSurface sttUrl={sttUrl} transcriptionClient={transcriptionClient} />
     </AssistantRuntimeProvider>
   );
 }

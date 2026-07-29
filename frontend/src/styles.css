@@ -10,12 +10,10 @@ body { min-width: 320px; min-height: 100vh; margin: 0; }
 button, textarea { font: inherit; }
 button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid #555cc7; outline-offset: 3px; }
 
-.app-shell { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100svh; max-width: 1120px; margin: 0 auto; padding: 0 48px; }
-.app-header, .app-footer { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; color: #706d66; font-size: 0.78rem; letter-spacing: 0.02em; }
+.app-shell { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100svh; max-width: 1120px; margin: 0 auto; padding: 0 48px; }
+.app-header { display: flex; align-items: center; padding: 22px 0; }
 .app-header { border-bottom: 1px solid #dedad1; }
-.app-header p { margin: 0; }
 .wordmark { color: #25231f; font-family: Georgia, "Times New Roman", serif; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.045em; text-decoration: none; }
-.app-footer { border-top: 1px solid #dedad1; gap: 0.5rem; justify-content: flex-start; }
 .conversation { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); padding: clamp(16px, 3vh, 32px) 0 18px; }
 .connection-status { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px; color: #66635c; font-size: 0.78rem; }
 .session-warning { margin: -8px 0 18px; color: #703b35; font-size: 0.78rem; line-height: 1.45; }
