@@ -10,7 +10,7 @@ body { min-width: 320px; min-height: 100vh; margin: 0; }
 button, textarea { font: inherit; }
 button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid #555cc7; outline-offset: 3px; }
 
-.app-shell { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 100svh; max-width: 1120px; margin: 0 auto; padding: 0 48px; }
+.app-shell { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100svh; max-width: 1120px; margin: 0 auto; padding: 0 48px; }
 .app-header, .app-footer { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; color: #706d66; font-size: 0.78rem; letter-spacing: 0.02em; }
 .app-header { border-bottom: 1px solid #dedad1; }
 .app-header p { margin: 0; }
@@ -26,8 +26,8 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px sol
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #555cc7; box-shadow: 0 0 0 4px #e2e2f3; }
 .status-dot.demo { background: #8c6c32; box-shadow: 0 0 0 4px #eee3cc; }
 .status-dot.offline { background: #89857c; box-shadow: 0 0 0 4px #e4e0d8; }
-.thread { min-height: 0; }
-.thread-viewport { display: flex; min-height: 0; height: 100%; flex-direction: column; overflow-y: auto; }
+.thread { display: flex; min-height: 0; }
+.thread-viewport { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow-y: auto; }
 .empty-state { max-width: 660px; margin: auto 0; padding: clamp(20px, 4vh, 36px) 0; animation: emerge 420ms ease-out both; }
 .disconnected { max-width: 660px; margin: auto 0; padding: 12vh 0; animation: emerge 420ms ease-out both; }
 .eyebrow { margin: 0 0 16px; color: #555cc7; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
