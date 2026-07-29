@@ -88,8 +88,8 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_persists_three_turns_in_order_after_reopening(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient espace é"
-            service = create_session_service(patient_directory)
+            user_directory = Path(temporary_directory) / "user espace é"
+            service = create_session_service(user_directory)
             runner, _ = self._runner(service)
             await service.create_session(
                 app_name="session_test_app", user_id="test-user", session_id="session-one"
@@ -98,7 +98,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
             for text in ("STT text one", "STT text two", "STT text three"):
                 await self._run_turn(runner, session_id="session-one", text=text)
 
-            reopened_service = create_session_service(patient_directory)
+            reopened_service = create_session_service(user_directory)
             session = await reopened_service.get_session(
                 app_name="session_test_app", user_id="test-user", session_id="session-one"
             )
@@ -120,11 +120,11 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
                     ("session_test_agent", "assistant reply 3"),
                 ],
             )
-            self.assertTrue((patient_directory / ".adk" / "session.db").is_file())
+            self.assertTrue((user_directory / ".adk" / "session.db").is_file())
 
     async def test_sessions_are_isolated(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            service = create_session_service(Path(temporary_directory) / "patient")
+            service = create_session_service(Path(temporary_directory) / "user")
             runner, _ = self._runner(service)
             for session_id, text in (("one", "first session"), ("two", "second session")):
                 await service.create_session(
@@ -143,7 +143,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_initial_event_write_failure_stops_before_model_call(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            database_path = get_session_database_path(Path(temporary_directory) / "patient")
+            database_path = get_session_database_path(Path(temporary_directory) / "user")
             service = FailOnAppendSessionService(str(database_path), fail_on_append=1)
             runner, model = self._runner(service)
             await service.create_session(
@@ -156,7 +156,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_response_write_failure_is_visible_and_keeps_user_event(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            database_path = get_session_database_path(Path(temporary_directory) / "patient")
+            database_path = get_session_database_path(Path(temporary_directory) / "user")
             service = FailOnAppendSessionService(str(database_path), fail_on_append=2)
             runner, model = self._runner(service)
             await service.create_session(
@@ -186,51 +186,51 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
 
     def test_private_directory_rejects_adk_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
-            patient_directory.mkdir()
-            adk_directory = patient_directory / ".adk"
+            user_directory = Path(temporary_directory) / "user"
+            user_directory.mkdir()
+            adk_directory = user_directory / ".adk"
             try:
                 adk_directory.symlink_to(Path(temporary_directory) / "outside", target_is_directory=True)
             except OSError as error:
                 self.skipTest(f"symbolic links are unavailable: {error}")
 
             with self.assertRaisesRegex(RuntimeError, "cannot be a symbolic link"):
-                get_session_database_path(patient_directory)
+                get_session_database_path(user_directory)
 
     def test_private_directory_rejects_session_database_symlink(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
-            database_path = get_session_database_path(patient_directory)
+            user_directory = Path(temporary_directory) / "user"
+            database_path = get_session_database_path(user_directory)
             try:
                 database_path.symlink_to(Path(temporary_directory) / "outside.db")
             except OSError as error:
                 self.skipTest(f"symbolic links are unavailable: {error}")
 
             with self.assertRaisesRegex(RuntimeError, "database cannot be a symbolic link"):
-                get_session_database_path(patient_directory)
+                get_session_database_path(user_directory)
 
     @unittest.skipIf(os.name == "nt", "POSIX permissions are unavailable on Windows")
-    def test_existing_patient_directory_permissions_are_preserved(self) -> None:
+    def test_existing_user_directory_permissions_are_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
-            patient_directory.mkdir(mode=0o750)
-            patient_directory.chmod(0o750)
+            user_directory = Path(temporary_directory) / "user"
+            user_directory.mkdir(mode=0o750)
+            user_directory.chmod(0o750)
 
-            adk_directory = get_session_database_path(patient_directory).parent
+            adk_directory = get_session_database_path(user_directory).parent
 
-            self.assertEqual(patient_directory.stat().st_mode & 0o777, 0o750)
+            self.assertEqual(user_directory.stat().st_mode & 0o777, 0o750)
             self.assertEqual(adk_directory.stat().st_mode & 0o777, 0o700)
 
     async def test_uri_and_server_launcher_use_explicit_adk_sqlite_service(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "private espace é"
-            with patch.dict("os.environ", {"PSYCLAW_PATIENT_DIR": str(patient_directory)}):
+            user_directory = Path(temporary_directory) / "private espace é"
+            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(user_directory)}):
                 uri = get_session_service_uri()
                 arguments = server.build_server_arguments(
                     host="127.0.0.1", port=8123, allow_origins=("http://localhost:5173",)
                 )
 
-            self.assertEqual(uri, f"sqlite:///{(patient_directory / '.adk' / 'session.db').resolve().as_posix()}")
+            self.assertEqual(uri, f"sqlite:///{(user_directory / '.adk' / 'session.db').resolve().as_posix()}")
             self.assertEqual(
                 arguments,
                 [
@@ -254,7 +254,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
             await service.create_session(
                 app_name="session_test_app", user_id="test-user", session_id="cli-uri"
             )
-            self.assertTrue((patient_directory / ".adk" / "session.db").is_file())
+            self.assertTrue((user_directory / ".adk" / "session.db").is_file())
 
 
 if __name__ == "__main__":

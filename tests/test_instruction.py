@@ -19,7 +19,7 @@ class InstructionTest(unittest.TestCase):
                 "current_date",
                 "session_guidance",
                 "record_warnings",
-                "patient_records",
+                "user_records",
             },
         )
 
@@ -31,7 +31,7 @@ class InstructionTest(unittest.TestCase):
         mock_get_date.return_value = {"status": "ok", "date": "2026-07-23"}
         mock_get_context.return_value = {
             "status": "ok",
-            "new_patient": False,
+            "new_user": False,
             "latest_session_note": "session_notes/2026-07-23.md",
             "records": {"memory.md": "# Clinical memory\n\nCurrent context."},
             "missing": [],
@@ -43,9 +43,9 @@ class InstructionTest(unittest.TestCase):
 
         self.assertIn("Current UTC date: 2026-07-23", instruction)
         self.assertIn("session_notes/2026-07-23.md", instruction)
-        self.assertIn('<patient-record path="memory.md">', instruction)
+        self.assertIn('<user-record path="memory.md">', instruction)
         self.assertNotIn("{current_date}", instruction)
-        self.assertNotIn("{patient_records}", instruction)
+        self.assertNotIn("{user_records}", instruction)
 
 
 if __name__ == "__main__":

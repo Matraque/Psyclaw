@@ -8,7 +8,7 @@ from google.adk.models.lite_llm import LiteLlm
 
 from psyclaw.config import ChatConfiguration, ConfigurationError, load_chat_configuration
 from psyclaw.instruction import build_instruction
-from psyclaw.patient_tools import (
+from psyclaw.user_tools import (
     append_file,
     list_files,
     read_file,
@@ -40,7 +40,7 @@ root_agent = Agent(
     name="psyclaw_agent",
     model=_create_chat_model(),
     instruction=build_instruction,
-    description="Conversational assistant with local patient-record memory.",
+    description="Conversational assistant with local user memory.",
     tools=[
         list_files,
         read_file,

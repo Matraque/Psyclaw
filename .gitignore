@@ -9,8 +9,5 @@ dist/
 todo.txt
 BACKLOG.html
 
-# Patient records are local runtime data. Never commit real patient information.
+# User records are local runtime data. Never commit real personal information.
 .psyclaw-data/
-
-# Legacy local patient directory from early development versions.
-psyclaw/patient/

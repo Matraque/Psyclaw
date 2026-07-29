@@ -1,27 +1,34 @@
-# Psyclaw
+# **Psyclaw**
 
 The open-source mental health AI agent that remembers.
 
 Psyclaw listens, remembers, and is available when you need it. It is inspired
-by OpenClaw and Hermes, and built with Google ADK.
+by OpenClaw and Hermes, is model-agnostic and built with Google ADK.
 
-## Why Psyclaw
+## **Why Psyclaw**
 
 I built Psyclaw after struggling to find a practitioner who accepted new
-patients. I know that getting support can save a life. Practitioners can be
-unavailable, appointments months away, and cost or fear of judgment can create
-friction. Psyclaw is available on demand. It is open source so we can improve
-this support together.
+people. I know that getting support can save a life.
 
-A [2026 Pew Research Center survey](https://www.pewresearch.org/chart/search-and-work-are-the-most-common-uses-for-chatbots-1-in-10-use-these-tools-for-emotional-support/) found that 10% of U.S. adults had used an AI chatbot for emotional support or advice.
+Practitioners may be unavailable. Appointments can be months away. Cost and
+fear of judgment can also prevent people from seeking help.
 
-## How to run
+Psyclaw is available on demand. It is open source so we can improve it together
+and make support more accessible. Contributions are welcome!
 
-You need [uv](https://docs.astral.sh/uv/) and a current Node.js LTS release.
+A [2026 Pew Research Center survey](https://www.pewresearch.org/chart/search-and-work-are-the-most-common-uses-for-chatbots-1-in-10-use-these-tools-for-emotional-support/)
+found that 10% of U.S. adults had used an AI chatbot for emotional support or
+advice.
+
+## **How to run**
+
+You need [uv](https://docs.astral.sh/uv/) and a current
+[Node.js LTS](https://nodejs.org/) release.
 
 ```bash
 git clone https://github.com/Matraque/Psyclaw.git
 cd Psyclaw
+
 # macOS or Linux
 cp .env.example .env
 ```
@@ -32,28 +39,50 @@ On Windows PowerShell, use:
 Copy-Item .env.example .env
 ```
 
-Open `.env`. Set `PSYCLAW_MODEL` and, if your chosen provider needs
-one, `PSYCLAW_API_KEY`. Models are configurable through LiteLLM. Some providers
-need extra environment values; add them to this file. See the [LiteLLM provider
-setup](https://docs.litellm.ai/docs/providers).
+Open `.env` and set `PSYCLAW_MODEL` and `PSYCLAW_API_KEY`.
 
-Then start everything with one command:
+For example:
+
+```env
+PSYCLAW_MODEL=mistral/mistral-medium-latest
+PSYCLAW_API_KEY=your-api-key
+```
+
+You can use any model supported by LiteLLM. See the
+[LiteLLM provider setup](https://docs.litellm.ai/docs/providers).
+
+Speech-to-text is optional, but recommended for a better experience. To use the
+microphone, add an STT model and API key to `.env`.
+
+For example:
+
+```env
+PSYCLAW_STT_MODEL=mistral/voxtral-mini-latest
+PSYCLAW_STT_API_KEY=your-api-key
+```
+
+Then, start everything with one command:
 
 ```bash
 uv run psyclaw
 ```
 
+On the first run, Psyclaw installs its own dependencies in a local, isolated
+environment.
+
 Your browser opens at `http://127.0.0.1:5173`. Press `Ctrl+C` to stop.
 
-Speech-to-text is optional. Add its two settings in `.env` when you
-want to use the microphone.
+## **How it works**
 
-History and records are stored locally in `.psyclaw-data/patient/`. Messages,
-record context, and audio are sent to the model or speech provider you choose.
-Their privacy and retention rules apply. Only local providers keep processing
-local. Do not commit this folder or your `.env` file.
+On first use, Psyclaw copies its starter memory files to
+`.psyclaw-data/user/`.
 
-## Tests
+This private folder stores local user data and conversation history. Never
+commit or share it.
+
+Messages and audio are processed by the AI providers you configure.
+
+## **Tests**
 
 ```bash
 uv run python -m unittest discover -s tests -v
