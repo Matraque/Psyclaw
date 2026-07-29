@@ -114,6 +114,32 @@ class LauncherTest(unittest.TestCase):
         self.assertNotIn("PSYCLAW_API_KEY", public)
         self.assertEqual(public["VITE_STT_URL"], "http://127.0.0.1:8001")
 
+    def test_frontend_install_marker_follows_the_lockfile(self) -> None:
+        directory, frontend = self.frontend()
+        calls = []
+
+        def command(arguments, **_kwargs):
+            calls.append(arguments)
+            return subprocess.CompletedProcess(arguments, 0)
+
+        with directory, patch.object(launcher, "FRONTEND", frontend):
+            launcher.install_frontend(command, self.environment)
+            self.assertTrue(launcher.lock_marker().is_file())
+            launcher.install_frontend(command, self.environment)
+            (frontend / "package-lock.json").write_text("changed")
+            launcher.install_frontend(command, self.environment)
+            marker = launcher.lock_marker()
+            marker.unlink()
+
+            def failed(arguments, **_kwargs):
+                return subprocess.CompletedProcess(arguments, 1)
+
+            with self.assertRaises(launcher.LauncherError):
+                launcher.install_frontend(failed, self.environment)
+            self.assertFalse(marker.exists())
+
+        self.assertEqual(calls, [["npm", "ci"], ["npm", "ci"]])
+
     def test_windows_cleanup_kills_every_process_tree(self) -> None:
         commands = []
         with patch.object(launcher.os, "name", "nt"):
