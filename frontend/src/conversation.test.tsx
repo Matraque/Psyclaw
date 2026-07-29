@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Conversation } from "./conversation";
+import { Conversation, SessionRestorationGate } from "./conversation";
 
 class ResizeObserverStub {
   observe() {}
@@ -14,6 +14,10 @@ globalThis.ResizeObserver = ResizeObserverStub;
 Object.defineProperty(HTMLElement.prototype, "scrollTo", {
   configurable: true,
   value: () => {},
+});
+
+afterEach(() => {
+  cleanup();
 });
 
 describe("Conversation", () => {
@@ -29,5 +33,39 @@ describe("Conversation", () => {
 
     expect(await screen.findByText(/No message was sent to an ADK server/)).toBeVisible();
     expect(screen.getByText("Local interface demonstration")).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("blocks the composer while reopening a conversation", () => {
+    render(
+      <SessionRestorationGate state="pending" onRetry={() => {}}>
+        <textarea aria-label="Message Psyclaw" />
+      </SessionRestorationGate>,
+    );
+
+    expect(screen.getByLabelText("Reopening conversation")).toHaveTextContent("Reopening your conversation…");
+    expect(screen.queryByRole("textbox", { name: "Message Psyclaw" })).not.toBeInTheDocument();
+  });
+
+  it("shows a retry action instead of the composer when reopening fails", () => {
+    const retry = vi.fn();
+    render(
+      <SessionRestorationGate state="retryable-error" onRetry={retry}>
+        <textarea aria-label="Message Psyclaw" />
+      </SessionRestorationGate>,
+    );
+
+    expect(screen.queryByRole("textbox", { name: "Message Psyclaw" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("renders the composer after restoration", () => {
+    render(
+      <SessionRestorationGate state="ready" onRetry={() => {}}>
+        <textarea aria-label="Message Psyclaw" />
+      </SessionRestorationGate>,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Message Psyclaw" })).toBeInTheDocument();
   });
 });
