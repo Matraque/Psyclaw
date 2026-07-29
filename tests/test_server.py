@@ -18,12 +18,12 @@ class PsyclawServerTest(unittest.TestCase):
 
     def test_cli_forwards_explicit_options_to_the_api_only_server(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
+            user_directory = Path(temporary_directory) / "user"
             with (
                 patch.dict(
                     "os.environ",
                     {
-                        "PSYCLAW_USER_DIR": str(patient_directory),
+                        "PSYCLAW_USER_DIR": str(user_directory),
                         "PSYCLAW_MODEL": "test/model",
                     },
                 ),
@@ -61,8 +61,8 @@ class PsyclawServerTest(unittest.TestCase):
 
     def test_defaults_to_loopback_and_never_enables_the_development_ui(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
-            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(patient_directory)}):
+            user_directory = Path(temporary_directory) / "user"
+            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(user_directory)}):
                 arguments = server.build_server_arguments()
 
             self.assertEqual(arguments[0], "api_server")
@@ -87,8 +87,8 @@ class PsyclawServerTest(unittest.TestCase):
 
     def test_api_only_app_has_required_routes_without_development_routes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
-            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(patient_directory)}):
+            user_directory = Path(temporary_directory) / "user"
+            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(user_directory)}):
                 app = get_fast_api_app(
                     agents_dir=str(server.AGENT_DIRECTORY),
                     session_service_uri=get_session_service_uri(),
@@ -118,8 +118,8 @@ class PsyclawServerTest(unittest.TestCase):
 
     def test_cors_allows_only_the_explicit_vite_origin(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
-            patient_directory = Path(temporary_directory) / "patient"
-            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(patient_directory)}):
+            user_directory = Path(temporary_directory) / "user"
+            with patch.dict("os.environ", {"PSYCLAW_USER_DIR": str(user_directory)}):
                 app = get_fast_api_app(
                     agents_dir=str(server.AGENT_DIRECTORY),
                     session_service_uri=get_session_service_uri(),

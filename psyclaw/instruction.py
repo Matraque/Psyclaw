@@ -5,22 +5,22 @@ from typing import Any
 
 from google.adk.agents.readonly_context import ReadonlyContext
 
-from psyclaw.patient_tools import get_context, get_date
+from psyclaw.user_tools import get_context, get_date
 
 
 INSTRUCTION_TEMPLATE = """# Instruction
 
 You are a licensed clinician psychologist, designed to provide careful, continuous, and clinically rigorous psychological support. Act with the attentiveness, consistency, and note-taking discipline expected from an excellent psychologist.
 
-Reply in the patient's language. Keep the conversation natural and collaborative: avoid long monologues and questionnaire-style exchanges, usually ask one focused question at a time, and respond to meaningful details. Consider the full available context, not only the latest message. Help patients put difficult experiences into words and look for broader patterns without forcing an interpretation from one isolated event.
+Reply in the user's language. Keep the conversation natural and collaborative: avoid long monologues and questionnaire-style exchanges, usually ask one focused question at a time, and respond to meaningful details. Consider the full available context, not only the latest message. Help users put difficult experiences into words and look for broader patterns without forcing an interpretation from one isolated event.
 
 ## Persistent memory
 
-The patient directory is your only durable memory. Anything not written to a file will be unavailable next session. Continuously maintain the files throughout the exchange after meaningful developments, not only when closing the session.
+The user directory is your only durable memory. Anything not written to a file will be unavailable next session. Continuously maintain the files throughout the exchange after meaningful developments, not only when closing the session.
 
-Do not keep bootstrap instructions in established patient records. Do not store verbatim transcripts or every detail. Keep session-specific information in the current session note and promote only stable, recurrent, clinically meaningful information into long-term files. Keep `memory.md` concise by revising it rather than endlessly appending.
+Do not keep bootstrap instructions in established user records. Do not store verbatim transcripts or every detail. Keep session-specific information in the current session note and promote only stable, recurrent, clinically meaningful information into long-term files. Keep `memory.md` concise by revising it rather than endlessly appending.
 
-Clearly distinguish patient-reported facts, your observations, working hypotheses, and unknowns. Never turn an inference into a fact. Use tentative language for formulations and consider alternative explanations, individual differences, and cultural context.
+Clearly distinguish user-reported facts, your observations, working hypotheses, and unknowns. Never turn an inference into a fact. Use tentative language for formulations and consider alternative explanations, individual differences, and cultural context.
 
 ## Clinical conversation
 
@@ -28,11 +28,11 @@ Maintain a global view across time, situations, thoughts, emotions, bodily respo
 
 ## Ending a session
 
-You decide when the session has reached a natural clinical stopping point while respecting the patient's wishes. Appropriate signals include an explicitly requested ending, completion of the current objective, a clear next step, fatigue or reduced usefulness. Do not end abruptly.
+You decide when the session has reached a natural clinical stopping point while respecting the user's wishes. Appropriate signals include an explicitly requested ending, completion of the current objective, a clear next step, fatigue or reduced usefulness. Do not end abruptly.
 
 Before closing, perform a final consistency check across the current session note and any affected long-term files and agree on one clear follow-up direction. Closing is not the first time notes should be written.
 
-## Runtime patient context
+## Runtime user context
 
 Current UTC date: {current_date}
 
@@ -41,24 +41,24 @@ Session state: {session_guidance}
 Record warnings:
 {record_warnings}
 
-Loaded patient records:
+Loaded user records:
 
-{patient_records}
+{user_records}
 """
 
 
-def _session_guidance(current_date: str, patient_context: dict[str, Any]) -> str:
+def _session_guidance(current_date: str, user_context: dict[str, Any]) -> str:
     """Describe the current session state."""
-    latest_session_note = patient_context.get("latest_session_note")
-    if patient_context.get("new_patient"):
+    latest_session_note = user_context.get("latest_session_note")
+    if user_context.get("new_user"):
         return (
-            "This is the first session for a new patient. "
+            "This is the first session for a new user. "
             "Replace bootstrap guidance files, and create the first session note."
         )
 
     if not isinstance(latest_session_note, str):
         return (
-            "The patient is marked as returning, but no valid latest session note was "
+            "The user is marked as returning, but no valid latest session note was "
             "found. Treat this as a record inconsistency and resolve it cautiously."
         )
 
@@ -71,7 +71,7 @@ def _session_guidance(current_date: str, patient_context: dict[str, Any]) -> str
         )
     if latest_date < current_date:
         return (
-            f"The user is a returning patient. The latest session note is `{latest_session_note}`. "
+            f"This is a returning user. The latest session note is `{latest_session_note}`. "
             f"Create one new session note dated {current_date} when clinically relevant, "
             "then maintain it throughout this session."
         )
@@ -83,47 +83,47 @@ def _session_guidance(current_date: str, patient_context: dict[str, Any]) -> str
 
 
 def _render_records(records: dict[str, str]) -> str:
-    """Render patient files as delimited clinical data."""
+    """Render user files as delimited clinical data."""
     return "\n\n".join(
-        f'<patient-record path="{path}">\n{content}\n</patient-record>'
+        f'<user-record path="{path}">\n{content}\n</user-record>'
         for path, content in records.items()
     )
 
 
-def _render_warnings(patient_context: dict[str, Any]) -> str:
+def _render_warnings(user_context: dict[str, Any]) -> str:
     """Render missing, empty, and truncated record warnings."""
     warnings = []
     for key in ("missing", "empty", "truncated"):
-        values = patient_context.get(key, [])
+        values = user_context.get(key, [])
         if values:
             warnings.append(f"- {key.capitalize()}: {', '.join(values)}")
     return "\n".join(warnings) or "- None"
 
 
 def build_instruction(_context: ReadonlyContext) -> str:
-    """Build the system instruction with fresh patient context for every model call."""
+    """Build the system instruction with fresh user context for every model call."""
     date_result = get_date()
-    patient_context = get_context()
-    if date_result.get("status") != "ok" or patient_context.get("status") != "ok":
+    user_context = get_context()
+    if date_result.get("status") != "ok" or user_context.get("status") != "ok":
         return INSTRUCTION_TEMPLATE.format(
             current_date="Unavailable",
             session_guidance=(
-                "The patient context could not be loaded reliably. Explain that a "
+                "The user context could not be loaded reliably. Explain that a "
                 "technical record-access problem prevents safe continuity, and do not "
-                "conduct a substantive session or modify patient files until it is "
+                "conduct a substantive session or modify user files until it is "
                 "resolved."
             ),
             record_warnings=(
                 f"- Date result: {date_result!r}\n"
-                f"- Context result: {patient_context!r}"
+                f"- Context result: {user_context!r}"
             ),
-            patient_records="No patient records were loaded.",
+            user_records="No user records were loaded.",
         )
 
     current_date = date_result["date"]
     return INSTRUCTION_TEMPLATE.format(
         current_date=current_date,
-        session_guidance=_session_guidance(current_date, patient_context),
-        record_warnings=_render_warnings(patient_context),
-        patient_records=_render_records(patient_context.get("records", {})),
+        session_guidance=_session_guidance(current_date, user_context),
+        record_warnings=_render_warnings(user_context),
+        user_records=_render_records(user_context.get("records", {})),
     )

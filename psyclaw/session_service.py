@@ -33,15 +33,15 @@ def _restrict_directory_permissions(directory: Path) -> None:
 
 
 def get_session_database_path(
-    patient_directory: Path | None = None,
+    user_directory: Path | None = None,
 ) -> Path:
     """Create and return the ADK SQLite database path in private storage.
 
     The hidden ``.adk`` directory is deliberately outside the Markdown-only
-    patient tool allowlist.  A symlink at that boundary is rejected so the
+    user tool allowlist.  A symlink at that boundary is rejected so the
     database cannot be redirected outside the configured private workspace.
     """
-    root = (patient_directory or get_user_directory()).expanduser()
+    root = (user_directory or get_user_directory()).expanduser()
     root_was_created = not root.exists()
     root.mkdir(parents=True, exist_ok=True)
     if root_was_created:
@@ -59,14 +59,14 @@ def get_session_database_path(
 
 
 def create_session_service(
-    patient_directory: Path | None = None,
+    user_directory: Path | None = None,
 ) -> SqliteSessionService:
     """Create ADK's durable SQLite service without an in-memory fallback."""
-    database_path = get_session_database_path(patient_directory)
+    database_path = get_session_database_path(user_directory)
     return SqliteSessionService(db_path=str(database_path))
 
 
-def get_session_service_uri(patient_directory: Path | None = None) -> str:
+def get_session_service_uri(user_directory: Path | None = None) -> str:
     """Build the SQLite URI used by the local ADK API server."""
-    database_path = get_session_database_path(patient_directory).resolve()
+    database_path = get_session_database_path(user_directory).resolve()
     return f"sqlite:///{database_path.as_posix()}"

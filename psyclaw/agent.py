@@ -8,7 +8,7 @@ from google.adk.models.lite_llm import LiteLlm
 
 from psyclaw.config import ChatConfiguration, ConfigurationError, load_chat_configuration
 from psyclaw.instruction import build_instruction
-from psyclaw.patient_tools import (
+from psyclaw.user_tools import (
     append_file,
     list_files,
     read_file,

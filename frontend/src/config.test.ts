@@ -39,7 +39,7 @@ describe("getConnectionConfig", () => {
   it.each([
     "https://adk.example.test",
     "ftp://127.0.0.1:8000",
-    "http://patient:secret@127.0.0.1:8000",
+    "http://user:secret@127.0.0.1:8000",
     "http://127.0.0.1:8000?session=private",
     "http://127.0.0.1:8000#private",
   ])("rejects an unsafe local-MVP ADK URL: %s", (adkUrl) => {

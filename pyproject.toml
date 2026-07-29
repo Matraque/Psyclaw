@@ -26,5 +26,4 @@ packages = ["psyclaw"]
 exclude = [
     "/psyclaw/.adk",
     "/psyclaw/.env",
-    "/psyclaw/user",
 ]
