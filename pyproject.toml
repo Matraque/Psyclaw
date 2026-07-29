@@ -1,7 +1,7 @@
 [project]
 name = "psyclaw"
 version = "0.1.0"
-description = "A local AI psychologist built with Google ADK and LiteLLM"
+description = "An open-source mental health AI agent built with Google ADK and LiteLLM"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

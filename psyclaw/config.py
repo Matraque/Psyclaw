@@ -23,7 +23,7 @@ def load_chat_configuration(environment: Mapping[str, str]) -> ChatConfiguration
     """Load generic chat settings without selecting a provider or a model."""
     model = _optional_value(environment, "PSYCLAW_MODEL")
     if model is None or model == "provider/model-name":
-        raise ConfigurationError("Set PSYCLAW_MODEL in psyclaw/.env, then run Psyclaw again.")
+        raise ConfigurationError("Set PSYCLAW_MODEL in the root .env file, then run Psyclaw again.")
     return ChatConfiguration(
         model=model,
         api_key=_optional_value(environment, "PSYCLAW_API_KEY"),

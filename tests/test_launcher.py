@@ -46,6 +46,19 @@ class LauncherTest(unittest.TestCase):
             with self.subTest(env=env), self.assertRaises(launcher.LauncherError):
                 launcher.run(env, popen=lambda *args, **kwargs: self.fail("started"), which=lambda _: "/bin/npm")
 
+    def test_nominal_order_and_health_failure_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(launcher, "FRONTEND", Path(directory)):
+            (launcher.FRONTEND / "package-lock.json").write_text("lock")
+            (launcher.FRONTEND / "node_modules").mkdir()
+            (launcher.lock_marker()).write_text(launcher.lock_digest())
+            started = []
+            processes = [Process(), Process(), Process()]
+            def popen(args, **kwargs):
+                started.append(args)
+                return processes[len(started) - 1]
+            launcher.run({**self.env, "PSYCLAW_STT_MODEL": "x/y", "PSYCLAW_STT_API_KEY": "key"}, popen=popen, ready=lambda: True, sleep=lambda _: (_ for _ in ()).throw(KeyboardInterrupt()))
+            self.assertEqual(started, [launcher.server_command(), launcher.stt_command(), launcher.ui_command()])
+
     def test_services_use_a_group_and_windows_timeout_uses_taskkill_tree(self):
         process = Process(timeout=True)
         calls = []

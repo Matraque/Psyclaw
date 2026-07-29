@@ -13,7 +13,9 @@ class ChatConfigurationTest(unittest.TestCase):
     def test_requires_an_explicit_model_without_choosing_a_provider(self) -> None:
         for environment in ({}, {"PSYCLAW_MODEL": "provider/model-name"}):
             with self.subTest(environment=environment):
-                with self.assertRaisesRegex(ConfigurationError, "PSYCLAW_MODEL"):
+                with self.assertRaisesRegex(
+                    ConfigurationError, "root .env file"
+                ):
                     load_chat_configuration(environment)
 
     def test_loads_generic_optional_overrides(self) -> None:

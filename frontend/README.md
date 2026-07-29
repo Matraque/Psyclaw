@@ -47,7 +47,7 @@ npm run dev
 
 The microphone sends an in-memory recording to a separate loopback service.
 The browser never receives its credentials. Add only generic STT settings to
-the private `psyclaw/.env` file:
+the private root `.env` file:
 
 ```bash
 PSYCLAW_STT_MODEL=provider/model-name

@@ -35,10 +35,9 @@ def main() -> None:
         raise SystemExit(1) from None
 
 
-def run(
-    environment: Mapping[str, str], *, popen=subprocess.Popen, command=subprocess.run,
-    ready: Callable[[], bool] | None = None, which=shutil.which, sleep=time.sleep,
-) -> None:
+def run(environment: Mapping[str, str], *, popen=subprocess.Popen,
+        command=subprocess.run, ready: Callable[[], bool] | None = None,
+        which=shutil.which, sleep=time.sleep) -> None:
     try:
         load_chat_configuration(environment)
         stt_enabled = has_complete_stt_configuration(environment)
@@ -53,7 +52,9 @@ def run(
         if not (ready or wait_for_health)():
             raise LauncherError("The local server did not become ready. Check that port 8000 is free.")
         if stt_enabled:
-            services.append(("speech-to-text service", start(popen, stt_command(), ROOT, environment)))
+            services.append(
+                ("speech-to-text service", start(popen, stt_command(), ROOT, environment))
+            )
         public = frontend_environment(environment, stt_enabled)
         services.append(("Assistant UI", start(popen, ui_command(), FRONTEND, public)))
         print(f"Psyclaw is running at http://{HOST}:{UI_PORT}")
@@ -82,34 +83,44 @@ def install_frontend(command, environment: Mapping[str, str]) -> None:
     marker = lock_marker()
     if marker.is_file() and marker.read_text().strip() == lock_digest():
         return
-    result = command(["npm", "ci"], cwd=FRONTEND, env=frontend_environment(environment, False), check=False, text=True)
+    result = command(
+        ["npm", "ci"], cwd=FRONTEND,
+        env=frontend_environment(environment, False), check=False, text=True,
+    )
     if result.returncode != 0:
         raise LauncherError("Frontend setup failed. Run `npm ci` in frontend and try again.")
     marker.write_text(f"{lock_digest()}\n")
 
 
 def server_command() -> list[str]:
-    return [sys.executable, "-m", "psyclaw.server", "--host", HOST, "--port", str(API_PORT), "--allow-origin", f"http://{HOST}:{UI_PORT}"]
+    return [sys.executable, "-m", "psyclaw.server", "--host", HOST, "--port",
+            str(API_PORT), "--allow-origin", f"http://{HOST}:{UI_PORT}"]
 
 
 def stt_command() -> list[str]:
-    return [sys.executable, "-m", "uvicorn", "psyclaw.transcription_api:app", "--host", HOST, "--port", str(STT_PORT)]
+    return [sys.executable, "-m", "uvicorn", "psyclaw.transcription_api:app",
+            "--host", HOST, "--port", str(STT_PORT)]
 
 
 def ui_command() -> list[str]:
-    return ["npm", "run", "dev", "--", "--host", HOST, "--port", str(UI_PORT), "--strictPort", "--open"]
+    return ["npm", "run", "dev", "--", "--host", HOST, "--port", str(UI_PORT),
+            "--strictPort", "--open"]
 
 
 def frontend_environment(environment: Mapping[str, str], stt_enabled: bool) -> dict[str, str]:
-    public = {key: environment[key] for key in ("PATH", "SYSTEMROOT", "COMSPEC", "PATHEXT", "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "TMPDIR") if environment.get(key)}
-    public.update({"VITE_ADK_URL": f"http://{HOST}:{API_PORT}", "VITE_ADK_APP_NAME": "psyclaw", "VITE_ADK_USER_ID": "local-user"})
+    system_keys = ("PATH", "SYSTEMROOT", "COMSPEC", "PATHEXT", "HOME", "USERPROFILE",
+                   "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "TMPDIR")
+    public = {key: environment[key] for key in system_keys if environment.get(key)}
+    public.update({"VITE_ADK_URL": f"http://{HOST}:{API_PORT}",
+                   "VITE_ADK_APP_NAME": "psyclaw", "VITE_ADK_USER_ID": "local-user"})
     if stt_enabled:
         public["VITE_STT_URL"] = f"http://{HOST}:{STT_PORT}"
     return public
 
 
 def start(popen, args: Sequence[str], cwd: Path, env: Mapping[str, str]):
-    options = {"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)} if os.name == "nt" else {"start_new_session": True}
+    options = ({"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)}
+               if os.name == "nt" else {"start_new_session": True})
     return popen(list(args), cwd=cwd, env=dict(env), **options)
 
 

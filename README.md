@@ -16,7 +16,7 @@ A [2026 Pew Research Center survey](https://www.pewresearch.org/chart/search-and
 
 ## How to run
 
-You need [uv](https://docs.astral.sh/uv/) and Node.js with npm.
+You need [uv](https://docs.astral.sh/uv/) and a current Node.js LTS release.
 
 ```bash
 git clone https://github.com/Matraque/Psyclaw.git
