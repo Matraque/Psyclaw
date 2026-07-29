@@ -62,7 +62,7 @@ def build_server_arguments(
 
 
 def main(argv: Sequence[str] | None = None) -> None:
-    """Invoke ADK's API-only server without its development interface."""
+    """Invoke ADK's API server."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
