@@ -11,7 +11,7 @@ from google.adk.cli import main as adk_main
 from psyclaw.session_service import get_session_service_uri
 
 
-PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
+AGENT_DIRECTORY = Path(__file__).resolve().parent
 
 
 def build_server_arguments(
@@ -33,7 +33,7 @@ def build_server_arguments(
     ]
     for origin in allow_origins:
         arguments.extend(["--allow_origins", origin])
-    arguments.append(str(PROJECT_DIRECTORY))
+    arguments.append(str(AGENT_DIRECTORY))
     return arguments
 
 

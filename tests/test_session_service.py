@@ -244,7 +244,7 @@ class SessionServiceTest(unittest.IsolatedAsyncioTestCase):
                     uri,
                     "--allow_origins",
                     "http://localhost:5173",
-                    str(server.PROJECT_DIRECTORY),
+                    str(server.AGENT_DIRECTORY),
                 ],
             )
             service = create_session_service_from_options(

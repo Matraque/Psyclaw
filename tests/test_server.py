@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
 from google.adk.cli.fast_api import get_fast_api_app
 
 from psyclaw import server
@@ -57,7 +58,7 @@ class PsyclawServerTest(unittest.TestCase):
             patient_directory = Path(temporary_directory) / "patient"
             with patch.dict("os.environ", {"PSYCLAW_PATIENT_DIR": str(patient_directory)}):
                 app = get_fast_api_app(
-                    agents_dir=str(server.PROJECT_DIRECTORY),
+                    agents_dir=str(server.AGENT_DIRECTORY),
                     session_service_uri=get_session_service_uri(),
                     web=False,
                 )
@@ -75,6 +76,12 @@ class PsyclawServerTest(unittest.TestCase):
         self.assertNotIn("/dev-ui", routes)
         self.assertFalse(any(route.startswith("/dev-ui/") for route in routes))
         self.assertFalse(any(route.startswith("/builder/") for route in routes))
+
+        with TestClient(app) as client:
+            response = client.get("/list-apps")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), ["psyclaw"])
 
 
 if __name__ == "__main__":
