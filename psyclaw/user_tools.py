@@ -13,6 +13,7 @@ DEFAULT_USER_DIRECTORY = PROJECT_DIRECTORY / ".psyclaw-data" / "user"
 USER_DIRECTORY = Path(
     os.getenv("PSYCLAW_USER_DIR", str(DEFAULT_USER_DIRECTORY))
 ).expanduser()
+MEMORY_DIRECTORY_NAME = "memory"
 DEFAULT_USER_FILES_DIRECTORY = Path(__file__).resolve().parent / "default_user"
 ALLOWED_SUFFIXES = {".md"}
 MAX_FILE_SIZE_BYTES = 128 * 1024
@@ -41,10 +42,20 @@ def get_date() -> dict[str, str]:
     }
 
 
-def _user_root() -> Path:
-    """Return the canonical user directory, creating it when necessary."""
+def _private_user_root() -> Path:
+    """Return the canonical private user directory, creating it when necessary."""
     USER_DIRECTORY.mkdir(parents=True, exist_ok=True)
     return USER_DIRECTORY.resolve()
+
+
+def _memory_root() -> Path:
+    """Return the canonical Markdown workspace, creating it when necessary."""
+    user_directory = _private_user_root()
+    memory_directory = user_directory / MEMORY_DIRECTORY_NAME
+    if memory_directory.is_symlink():
+        raise UserFileError("The memory workspace cannot be a symbolic link.")
+    memory_directory.mkdir(exist_ok=True)
+    return memory_directory.resolve()
 
 
 def _normalise_relative_path(path: str, *, allow_root: bool = False) -> PurePosixPath:
@@ -74,7 +85,7 @@ def _resolve_user_file(path: str, *, must_exist: bool = False) -> tuple[Path, st
     if relative_path.suffix.lower() not in ALLOWED_SUFFIXES:
         raise UserFileError("Only Markdown (.md) files are allowed.")
 
-    root = _user_root()
+    root = _memory_root()
     requested_path = root / relative_path
     current_path = root
     for part in relative_path.parts:
@@ -96,7 +107,7 @@ def _resolve_user_file(path: str, *, must_exist: bool = False) -> tuple[Path, st
 def _resolve_user_directory(path: str = "") -> Path:
     """Resolve a user subdirectory without permitting symbolic links."""
     relative_path = _normalise_relative_path(path, allow_root=True)
-    root = _user_root()
+    root = _memory_root()
     requested_path = root / relative_path
     current_path = root
     for part in relative_path.parts:
@@ -126,9 +137,9 @@ def _read_text(path: Path) -> str:
 
 def _initialise_user_workspace() -> bool:
     """Seed a private user workspace once without overwriting existing data."""
-    root = _user_root()
+    root = _memory_root()
 
-    marker_path = root / WORKSPACE_MARKER
+    marker_path = _private_user_root() / WORKSPACE_MARKER
     if marker_path.is_file():
         return False
     if not DEFAULT_USER_FILES_DIRECTORY.is_dir():
@@ -167,7 +178,7 @@ def list_files(path: str = "") -> dict[str, Any]:
         path: Optional relative subdirectory, for example ``session_notes``.
     """
     try:
-        root = _user_root()
+        root = _memory_root()
         directory = _resolve_user_directory(path)
 
         entries = []
@@ -270,7 +281,7 @@ def get_context() -> dict[str, Any]:
     """
     try:
         workspace_bootstrapped = _initialise_user_workspace()
-        root = _user_root()
+        root = _memory_root()
         session_notes_directory = root / "session_notes"
         notes: list[Path] = []
         if session_notes_directory.is_dir() and not session_notes_directory.is_symlink():
