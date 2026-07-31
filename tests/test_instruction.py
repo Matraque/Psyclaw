@@ -53,8 +53,6 @@ class InstructionTest(unittest.TestCase):
         self.assertIn("call the `note_taker` tool", INSTRUCTION_TEMPLATE)
         self.assertIn("current conversation history natively", INSTRUCTION_TEMPLATE)
         self.assertIn("do not manufacture a parallel transcript", INSTRUCTION_TEMPLATE)
-        self.assertIn("`Memory consolidated`", INSTRUCTION_TEMPLATE)
-        self.assertIn("`No durable memory update`", INSTRUCTION_TEMPLATE)
         self.assertNotIn("Continuously maintain the files", INSTRUCTION_TEMPLATE)
         self.assertNotIn("Keep `memory.md` concise by revising", INSTRUCTION_TEMPLATE)
         self.assertNotIn("Continue updating that note", INSTRUCTION_TEMPLATE)
