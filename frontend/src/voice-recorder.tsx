@@ -258,43 +258,45 @@ export function VoiceRecorder({ client, onTranscript }: VoiceRecorderProps) {
   }, [releaseRecorder, stopRecorder]);
 
   return (
-    <div className="voice-controls">
-      {phase === "recording" ? (
-        <>
-          <button className="recording-button" type="button" onClick={stopRecording}>
-            <span aria-hidden="true" className="recording-indicator" />
-            Stop recording
-          </button>
-          <button className="voice-text-button" type="button" onClick={discardRecording}>Discard</button>
-        </>
-      ) : phase === "transcribing" ? (
-        <button className="voice-text-button" type="button" onClick={discardRecording}>Discard recording</button>
-      ) : (
-        <button
-          className="microphone-button"
-          type="button"
-          onClick={startRecording}
-          disabled={phase === "requesting"}
-          aria-label="Record a voice message"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <rect x="8" y="3" width="8" height="12" rx="4" />
-            <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7" />
-          </svg>
-          <span>Record</span>
-        </button>
-      )}
-      {phase === "failure" && (
-        <>
-          <button className="voice-text-button" type="button" onClick={retry}>Retry</button>
-          <button className="voice-text-button" type="button" onClick={discardRecording}>Discard</button>
-        </>
-      )}
+    <div className="voice-recorder">
       {notice && (
         <p className={phase === "failure" ? "voice-notice voice-error" : "voice-notice"} role={phase === "failure" ? "alert" : "status"}>
           {notice}
         </p>
       )}
+      <div className="voice-controls">
+        {phase === "recording" ? (
+          <>
+            <button className="recording-button" type="button" onClick={stopRecording}>
+              <span aria-hidden="true" className="recording-indicator" />
+              Stop recording
+            </button>
+            <button className="voice-text-button" type="button" onClick={discardRecording}>Discard</button>
+          </>
+        ) : phase === "transcribing" ? (
+          <button className="voice-text-button" type="button" onClick={discardRecording}>Discard recording</button>
+        ) : (
+          <button
+            className="microphone-button"
+            type="button"
+            onClick={startRecording}
+            disabled={phase === "requesting"}
+            aria-label="Record a voice message"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <rect x="8" y="3" width="8" height="12" rx="4" />
+              <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7" />
+            </svg>
+            <span>Record</span>
+          </button>
+        )}
+        {phase === "failure" && (
+          <>
+            <button className="voice-text-button" type="button" onClick={retry}>Retry</button>
+            <button className="voice-text-button" type="button" onClick={discardRecording}>Discard</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

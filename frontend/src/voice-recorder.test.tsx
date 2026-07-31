@@ -79,7 +79,10 @@ describe("voice recording", () => {
 
     await waitFor(() => expect(transcribe).toHaveBeenCalledTimes(1));
     expect(screen.getByRole("textbox", { name: "Message Psyclaw" })).toHaveValue("A synthetic transcript.");
-    expect(screen.getByText("Transcript added to your message. Review it before sending.")).toBeVisible();
+    const successNotice = screen.getByRole("status");
+    expect(successNotice).toHaveTextContent("Transcript added to your message. Review it before sending.");
+    expect(successNotice).toBeVisible();
+    expect(successNotice.closest(".voice-recorder")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   });
 
@@ -126,7 +129,9 @@ describe("voice recording", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Record a voice message" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Microphone permission was denied");
+    const errorNotice = await screen.findByRole("alert");
+    expect(errorNotice).toHaveTextContent("Microphone permission was denied");
+    expect(errorNotice.closest(".voice-recorder")).not.toBeNull();
     const composer = screen.getByRole("textbox", { name: "Message Psyclaw" });
     fireEvent.change(composer, { target: { value: "Text still works" } });
     expect(composer).toHaveValue("Text still works");
