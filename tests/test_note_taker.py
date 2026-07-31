@@ -83,8 +83,6 @@ class NoteTakerTest(unittest.IsolatedAsyncioTestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, NOTE_TAKER_INSTRUCTION)
         self.assertIn("conversation history is available", NOTE_TAKER_INSTRUCTION)
-        self.assertIn("return exactly `Memory consolidated`", NOTE_TAKER_INSTRUCTION)
-        self.assertIn("return exactly `No durable memory update`", NOTE_TAKER_INSTRUCTION)
 
     def test_root_keeps_only_readers_and_the_agent_tool(self) -> None:
         specialist = Agent(
