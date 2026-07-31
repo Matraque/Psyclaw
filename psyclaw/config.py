@@ -1,4 +1,4 @@
-"""Private, provider-neutral configuration for Psyclaw's chat model."""
+"""Configuration for Psyclaw's chat model."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ class ConfigurationError(ValueError):
 
 
 def load_chat_configuration(environment: Mapping[str, str]) -> ChatConfiguration:
-    """Load generic chat settings without selecting a provider or a model."""
+    """Load generic chat settings."""
     model = _optional_value(environment, "PSYCLAW_MODEL")
     if model is None or model == "provider/model-name":
         raise ConfigurationError("Set PSYCLAW_MODEL in the root .env file, then run Psyclaw again.")

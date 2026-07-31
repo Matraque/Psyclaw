@@ -1,8 +1,7 @@
 # Psyclaw Assistant UI shell
 
 This is Psyclaw's product-facing local interface. It connects to Psyclaw's
-local server, which exposes the Google ADK API. The product server does not
-serve a development interface.
+local server, which exposes the Google ADK API. Development interface can be accessed by running `adk web`.
 
 The browser receives only these explicit public connection values:
 
