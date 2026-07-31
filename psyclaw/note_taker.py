@@ -18,20 +18,16 @@ filesystem tools to add, correct, or update the useful Markdown records. Keep
 notes concise. Clearly label reported facts, your observations, tentative
 hypotheses, and important unknowns. Never invent a diagnosis or turn an
 inference into a fact.
-
-After changing a record, return exactly `Memory consolidated`. When no record
-needs changing, return exactly `No durable memory update`.
 """
 
 
 def create_note_taker(model: str | BaseLlm) -> Agent:
-    """Create a single-turn specialist with the bounded FILES-I03 toolset."""
+    """Create the note-taker with filesystem toolset."""
     return Agent(
         name="note_taker",
         model=model,
         description=(
-            "Consolidates newly learned durable user memory from the current "
-            "conversation."
+            "Consolidates newly learned durable user memory from the current conversation."
         ),
         instruction=NOTE_TAKER_INSTRUCTION,
         mode="single_turn",
