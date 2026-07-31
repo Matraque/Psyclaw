@@ -1,0 +1,18 @@
+Psyclaw imports the following files verbatim from groxaxo/dr-aria at commit
+6c8689a37ec91fa365e91d654f950541c23e4c0e, under its MIT License.
+
+- emotional-support/SKILL.md
+  source: skills/mental-health/emotional-support/SKILL.md
+  blob: 0842fea4403f83c719f9469ae781e8dcf6b797c0
+- cognitive-behavioral/SKILL.md
+  source: skills/mental-health/cognitive-behavioral/SKILL.md
+  blob: 8d65ff32b86c31d68a96360aba40e677d73da536
+- act-therapy/SKILL.md
+  source: skills/mental-health/act-therapy/SKILL.md
+  blob: e88dc95201f1883c484899a94346a4ade4c56504
+- somatic-grounding/SKILL.md
+  source: skills/mental-health/somatic-grounding/SKILL.md
+  blob: 5c2cc0d65c0132a874c9b808a264456f9330d77c
+
+The upstream LICENSE is copied verbatim as LICENSE (blob
+75410e73319c72cd3e991a501c5455eb78f38375).

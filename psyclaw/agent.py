@@ -6,6 +6,8 @@ from google.adk.agents import Agent
 from google.adk.apps import App
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.skills import list_skills_in_dir, load_skill_from_dir
+from google.adk.tools.skill_toolset import SkillToolset
 
 from psyclaw.config import (
     ChatConfiguration,
@@ -21,6 +23,18 @@ from psyclaw.user_tools import (
 )
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+SKILLS_DIRECTORY = Path(__file__).with_name("skills")
+
+
+def _create_skill_toolset() -> SkillToolset:
+    """Load the local ADK skills catalogue with ADK's native toolset."""
+    return SkillToolset(
+        skills=[
+            load_skill_from_dir(SKILLS_DIRECTORY / name)
+            for name in list_skills_in_dir(SKILLS_DIRECTORY)
+        ]
+    )
 
 
 def _create_model(configuration: ChatConfiguration) -> LiteLlm:
@@ -68,6 +82,7 @@ def create_root_agent(
         tools=[
             list_files,
             read_file,
+            _create_skill_toolset(),
         ],
         sub_agents=[note_taker],
     )

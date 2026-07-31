@@ -95,9 +95,9 @@ class NoteTakerTest(unittest.IsolatedAsyncioTestCase):
         root = create_root_agent(chat_model="test/chat", note_taker=specialist)
 
         self.assertEqual([tool.__name__ for tool in root.tools[:2]], ["list_files", "read_file"])
-        self.assertEqual(len(root.tools), 3)
-        self.assertEqual(type(root.tools[2]).__name__, "_SingleTurnAgentTool")
-        self.assertIs(root.tools[2].agent, specialist)
+        self.assertEqual(len(root.tools), 4)
+        self.assertEqual(type(root.tools[3]).__name__, "_SingleTurnAgentTool")
+        self.assertIs(root.tools[3].agent, specialist)
         self.assertEqual(root.sub_agents, [specialist])
         self.assertIs(specialist.parent_agent, root)
         self.assertNotIn("write_file", [getattr(tool, "name", None) for tool in root.tools])
