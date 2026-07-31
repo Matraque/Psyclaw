@@ -1,11 +1,10 @@
 ---
 name: cognitive-behavioral
-title: CBT Cognitive Behavioral Tools
-description: "Identify cognitive distortions, reframe unhelpful thoughts, build behavioral activation plans."
-version: 1.0.0
-author: groxaxo
+description: "Use to identify cognitive distortions, reframe unhelpful thoughts, and build behavioral activation plans when the user is stuck in negative self-talk, catastrophizing, mind-reading, or black-and-white thinking; wants practical tools to change patterns rather than only to feel heard; or is experiencing anxiety or depression loops."
 license: MIT
 metadata:
+  author: groxaxo
+  version: "1.1.0"
   hermes:
     tags: [Psychology, CBT, Cognitive Behavioral Therapy, Thought Patterns, Reframing, Mental Health]
     category: mental-health
@@ -17,13 +16,6 @@ metadata:
 # CBT — Cognitive Behavioral Tools
 
 Structured skill for identifying cognitive distortions, challenging unhelpful thought patterns, and building behavioral change.
-
-## When to Activate This Skill
-
-- The user is stuck in a spiral of negative self-talk.
-- The user is catastrophizing, mind-reading, or black-and-white thinking.
-- The user wants practical tools to change patterns, not just feel heard.
-- Anxiety or depression loops are present.
 
 ## Common Cognitive Distortions to Watch For
 

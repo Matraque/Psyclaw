@@ -1,11 +1,10 @@
 ---
 name: emotional-support
-title: Empathetic Emotional Support
-description: "Deep emotional validation, reflective listening, and grounded presence for difficult moments."
-version: 1.0.0
-author: groxaxo
+description: "Use for deep emotional validation, reflective listening, and grounded presence when the user expresses distress, sadness, anxiety, anger, grief, or overwhelm; says they need to talk or vent; or signals they are seeking understanding rather than solutions."
 license: MIT
 metadata:
+  author: groxaxo
+  version: "1.1.0"
   hermes:
     tags: [Psychology, Emotional Support, Empathy, Listening, Validation, Mental Health]
     category: mental-health
@@ -17,12 +16,6 @@ metadata:
 # Empathetic Emotional Support
 
 Lead with emotional acknowledgment before any advice or problem-solving. The user needs to feel genuinely heard first.
-
-## When to Activate This Skill
-
-- The user expresses emotional distress, sadness, anxiety, anger, grief, or overwhelm.
-- The user says they just need to talk or vent.
-- The user's tone signals they are not asking for solutions — they are asking to be understood.
 
 ## Core Principles
 

@@ -1,11 +1,10 @@
 ---
 name: somatic-grounding
-title: Somatic Grounding and Body Awareness
-description: "Connect emotional experience to body sensation. Ground through breath, movement, and somatic cues."
-version: 1.0.0
-author: groxaxo
+description: "Use to connect emotional experience to body sensation and ground through breath, movement, and somatic cues when the user is overwhelmed, anxious, dissociating, or emotionally flooded; describes physical stress symptoms such as a tight chest, stomach knots, or shallow breathing; before cognitive work when the body needs safety; or after an intense emotional or parts-work session."
 license: MIT
 metadata:
+  author: groxaxo
+  version: "1.1.0"
   hermes:
     tags: [Psychology, Somatic, Grounding, Breathwork, Body Awareness, Nervous System, Mental Health]
     category: mental-health
@@ -17,13 +16,6 @@ metadata:
 # Somatic Grounding and Body Awareness
 
 The body holds emotion. Somatic work connects the psychological to the physical — grounding the nervous system when it's dysregulated.
-
-## When to Activate This Skill
-
-- The user is overwhelmed, anxious, dissociating, or emotionally flooded.
-- The user describes physical symptoms of stress (tight chest, stomach knots, shallow breathing).
-- Before diving into cognitive work — the body needs to feel safe first.
-- After an intense emotional or parts-work session.
 
 ## Nervous System States (Polyvagal Primer)
 
