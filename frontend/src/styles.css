@@ -32,8 +32,9 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px sol
 h1 { max-width: 660px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.7rem, 5vw, 4.35rem); font-weight: 400; letter-spacing: -0.055em; line-height: 0.96; }
 .empty-state > p:last-child, .disconnected > div > p { max-width: 490px; margin: 26px 0 0; color: #68645d; font-size: 1.02rem; line-height: 1.65; }
 .message { width: min(100%, 720px); margin: 0 auto 24px; animation: emerge 260ms ease-out both; }
-.message-user { width: fit-content; max-width: min(78%, 620px); margin-right: max(0px, calc((100% - 720px) / 2)); padding: 12px 16px; border-radius: 18px 18px 4px 18px; background: #e7e5f6; color: #292b59; line-height: 1.55; }
-.message-assistant { color: #302f2b; font-family: Georgia, "Times New Roman", serif; font-size: 1.22rem; line-height: 1.58; }
+.message-user, .message-assistant { font-family: inherit; font-size: 1rem; line-height: 1.55; }
+.message-user { width: fit-content; max-width: min(78%, 620px); margin-right: max(0px, calc((100% - 720px) / 2)); padding: 12px 16px; border-radius: 18px 18px 4px 18px; background: #e7e5f6; color: #292b59; }
+.message-assistant { color: #302f2b; }
 .assistant-text { margin: 0; }
 .stream-cursor { display: inline-block; width: 0.5ch; height: 1em; margin-left: 2px; background: #555cc7; vertical-align: -0.1em; animation: blink 800ms steps(2, start) infinite; }
 .message-error { margin-top: 12px; padding: 10px 12px; border-left: 2px solid #ab4d44; background: #f6e6e3; color: #703b35; font-family: Inter, ui-sans-serif, sans-serif; font-size: 0.82rem; }
@@ -74,4 +75,4 @@ h1 { max-width: 660px; margin: 0; font-family: Georgia, "Times New Roman", serif
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes pulse { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; } }
-@media (max-width: 640px) { .app-shell { padding: 0 20px; } .app-header { padding: 17px 0; } .app-header p { display: none; } .conversation { padding-top: 30px; } .empty-state, .disconnected { padding: 12vh 0; } .message-user { max-width: 90%; } .message-assistant { font-size: 1.12rem; } .composer-region { padding-top: 18px; } }
+@media (max-width: 640px) { .app-shell { padding: 0 20px; } .app-header { padding: 17px 0; } .app-header p { display: none; } .conversation { padding-top: 30px; } .empty-state, .disconnected { padding: 12vh 0; } .message-user { max-width: 90%; } .composer-region { padding-top: 18px; } }
