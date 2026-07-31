@@ -43,9 +43,22 @@ class InstructionTest(unittest.TestCase):
 
         self.assertIn("Current UTC date: 2026-07-23", instruction)
         self.assertIn("session_notes/2026-07-23.md", instruction)
+        self.assertIn("Ask the note-taker to consolidate", instruction)
+        self.assertNotIn("Continue updating that note", instruction)
         self.assertIn('<user-record path="memory.md">', instruction)
         self.assertNotIn("{current_date}", instruction)
         self.assertNotIn("{user_records}", instruction)
+
+    def test_psychologist_delegates_durable_memory_without_claiming_to_write_notes(self) -> None:
+        self.assertIn("call the `note_taker` tool", INSTRUCTION_TEMPLATE)
+        self.assertIn("current conversation history natively", INSTRUCTION_TEMPLATE)
+        self.assertIn("do not manufacture a parallel transcript", INSTRUCTION_TEMPLATE)
+        self.assertIn("`Memory consolidated`", INSTRUCTION_TEMPLATE)
+        self.assertIn("`No durable memory update`", INSTRUCTION_TEMPLATE)
+        self.assertNotIn("Continuously maintain the files", INSTRUCTION_TEMPLATE)
+        self.assertNotIn("Keep `memory.md` concise by revising", INSTRUCTION_TEMPLATE)
+        self.assertNotIn("Continue updating that note", INSTRUCTION_TEMPLATE)
+        self.assertNotIn("Update the care plan", INSTRUCTION_TEMPLATE)
 
 
 if __name__ == "__main__":

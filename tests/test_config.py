@@ -9,6 +9,7 @@ from psyclaw.config import (
     ConfigurationError,
     has_complete_stt_configuration,
     load_chat_configuration,
+    load_memory_configuration,
 )
 
 
@@ -44,6 +45,30 @@ class ChatConfigurationTest(unittest.TestCase):
         self.assertEqual(configuration.model, "local/model")
         self.assertEqual(configuration.api_key, "private-test-key")
         self.assertEqual(configuration.api_base, "http://127.0.0.1:1234/v1")
+
+    def test_memory_configuration_inherits_chat_settings_and_allows_overrides(self) -> None:
+        inherited = load_memory_configuration(
+            {
+                "PSYCLAW_MODEL": "local/chat",
+                "PSYCLAW_API_KEY": "chat-key",
+                "PSYCLAW_API_BASE": "http://chat.example/v1",
+            }
+        )
+        self.assertEqual(inherited.model, "local/chat")
+        self.assertEqual(inherited.api_key, "chat-key")
+        self.assertEqual(inherited.api_base, "http://chat.example/v1")
+
+        dedicated = load_memory_configuration(
+            {
+                "PSYCLAW_MODEL": "local/chat",
+                "PSYCLAW_MEMORY_MODEL": "local/small-memory",
+                "PSYCLAW_MEMORY_API_KEY": "memory-key",
+                "PSYCLAW_MEMORY_API_BASE": "http://memory.example/v1",
+            }
+        )
+        self.assertEqual(dedicated.model, "local/small-memory")
+        self.assertEqual(dedicated.api_key, "memory-key")
+        self.assertEqual(dedicated.api_base, "http://memory.example/v1")
 
     def test_speech_to_text_requires_its_two_explicit_settings(self) -> None:
         self.assertFalse(has_complete_stt_configuration({}))

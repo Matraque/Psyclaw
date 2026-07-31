@@ -213,62 +213,6 @@ def read_file(path: str) -> dict[str, Any]:
         return _result_error(error)
 
 
-def write_file(path: str, content: str, overwrite: bool = False) -> dict[str, Any]:
-    """Create a Markdown note, or explicitly replace an existing note.
-
-    Args:
-        path: Relative path within the user directory. The extension must be ``.md``.
-        content: Complete Markdown content for the note.
-        overwrite: Set to ``true`` only to replace an existing note.
-    """
-    try:
-        if not isinstance(content, str):
-            raise UserFileError("The content must be a string.")
-        if not isinstance(overwrite, bool):
-            raise UserFileError("The overwrite parameter must be a boolean.")
-        if len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
-            raise UserFileError(
-                f"The content exceeds the {MAX_FILE_SIZE_BYTES // 1024} KiB limit."
-            )
-
-        file_path, relative_path = _resolve_user_file(path)
-        if file_path.exists() and not overwrite:
-            raise UserFileError(
-                "The file already exists. Use append_file or overwrite=true."
-            )
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content, encoding="utf-8")
-        return {"status": "ok", "path": relative_path, "operation": "written"}
-    except UserFileError as error:
-        return _result_error(error)
-
-
-def append_file(path: str, content: str) -> dict[str, Any]:
-    """Append Markdown to an existing or new user note.
-
-    Args:
-        path: Relative path within the user directory. The extension must be ``.md``.
-        content: Markdown text to add to the end of the note.
-    """
-    try:
-        if not isinstance(content, str):
-            raise UserFileError("The content must be a string.")
-        file_path, relative_path = _resolve_user_file(path)
-        current_size = file_path.stat().st_size if file_path.exists() else 0
-        if current_size + len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
-            raise UserFileError(
-                f"The file would exceed the {MAX_FILE_SIZE_BYTES // 1024} KiB limit."
-            )
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(
-            (file_path.read_text(encoding="utf-8") if file_path.exists() else "") + content,
-            encoding="utf-8",
-        )
-        return {"status": "ok", "path": relative_path, "operation": "appended"}
-    except UserFileError as error:
-        return _result_error(error)
-
-
 def get_context() -> dict[str, Any]:
     """Initialise the private workspace once, then load user context.
 
