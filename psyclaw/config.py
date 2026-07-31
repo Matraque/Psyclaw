@@ -32,12 +32,7 @@ def load_chat_configuration(environment: Mapping[str, str]) -> ChatConfiguration
 
 
 def load_memory_configuration(environment: Mapping[str, str]) -> ChatConfiguration:
-    """Load memory settings, inheriting every unspecified chat setting.
-
-    A dedicated memory model is optional.  Provider-neutral API overrides use
-    the same inheritance rule, so a memory-only setup never needs to duplicate
-    the chat credentials.
-    """
+    """A dedicated memory model is optional. If no model is provided, inherit chat model."""
     chat = load_chat_configuration(environment)
     return ChatConfiguration(
         model=_optional_value(environment, "PSYCLAW_MEMORY_MODEL") or chat.model,
