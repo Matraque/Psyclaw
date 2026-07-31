@@ -32,6 +32,38 @@ class ScriptedModel(BaseLlm):
         yield self.responses.pop(0)
 
 
+class TemporaryMemoryFilesystem:
+    def __init__(self, root: Path) -> None:
+        self.root = root.resolve()
+
+    def read_text_file(self, path: str) -> dict[str, str]:
+        return {"content": self._path(path).read_text(encoding="utf-8")}
+
+    def write_file(self, path: str, content: str) -> dict[str, str]:
+        self._path(path).write_text(content, encoding="utf-8")
+        return {"status": "ok"}
+
+    def edit_file(self, path: str, old_text: str, new_text: str) -> dict[str, str]:
+        file_path = self._path(path)
+        content = file_path.read_text(encoding="utf-8")
+        if content.count(old_text) != 1:
+            raise ValueError("Expected one matching passage.")
+        file_path.write_text(content.replace(old_text, new_text), encoding="utf-8")
+        return {"status": "ok"}
+
+    def snapshot(self) -> dict[str, str]:
+        return {
+            path.relative_to(self.root).as_posix(): path.read_text(encoding="utf-8")
+            for path in sorted(self.root.rglob("*.md"))
+        }
+
+    def _path(self, path: str) -> Path:
+        candidate = (self.root / path).resolve()
+        if candidate.suffix != ".md" or self.root not in candidate.parents:
+            raise ValueError("The test tool only permits Markdown files under its root.")
+        return candidate
+
+
 class NoteTakerTest(unittest.IsolatedAsyncioTestCase):
     def test_note_taker_has_exactly_the_bounded_filesystem_toolset(self) -> None:
         with patch.object(user_tools, "USER_DIRECTORY", self._temporary_user_directory()):
@@ -183,6 +215,127 @@ class NoteTakerTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn("Thank you for sharing that.", final_text)
         self.assertNotIn("Memory consolidated", final_text)
+
+    async def test_memory_state_gates_through_runner(self) -> None:
+        old_fact = "- Reported fact: User works at Northwind.\n"
+        corrected_fact = "- Reported fact: User left Northwind.\n"
+        added_fact = "# Memory\n- Reported fact: User started a new role.\n"
+        cases = (
+            (
+                "add",
+                "# Memory\n",
+                "write_file",
+                {"path": "memory.md", "content": added_fact},
+                added_fact,
+                "Memory consolidated",
+            ),
+            (
+                "no-op",
+                added_fact,
+                None,
+                None,
+                added_fact,
+                "No durable memory update",
+            ),
+            (
+                "correction",
+                f"# Memory\n{old_fact}",
+                "edit_file",
+                {"path": "memory.md", "old_text": old_fact, "new_text": corrected_fact},
+                f"# Memory\n{corrected_fact}",
+                "Memory consolidated",
+            ),
+        )
+        for name, initial, tool_name, tool_args, expected, result in cases:
+            with self.subTest(name=name):
+                before, after = await self._run_memory_case(
+                    initial, tool_name, tool_args, result
+                )
+                self.assertEqual(after["memory.md"], expected)
+                self.assertEqual(before == after, tool_name is None)
+
+    async def _run_memory_case(
+        self,
+        memory_before: str,
+        tool_name: str | None,
+        tool_args: dict[str, str] | None,
+        result: str,
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            user_directory = Path(temporary_directory) / "synthetic-user"
+            memory_directory = user_directory / "memory"
+            memory_directory.mkdir(parents=True)
+            (memory_directory / "memory.md").write_text(memory_before, encoding="utf-8")
+            filesystem = TemporaryMemoryFilesystem(memory_directory)
+            memory_responses = [self._text_response(result)]
+            if tool_name and tool_args:
+                memory_responses = [
+                    self._function_call("read_text_file", {"path": "memory.md"}, "read-1"),
+                    self._function_call(tool_name, tool_args, "write-1"),
+                    self._text_response(result),
+                ]
+            specialist = Agent(
+                name="note_taker",
+                model=ScriptedModel(model="test/memory", responses=memory_responses),
+                instruction=NOTE_TAKER_INSTRUCTION,
+                mode="single_turn",
+                include_contents="default",
+                tools=[filesystem.read_text_file, filesystem.write_file, filesystem.edit_file],
+            )
+            root = create_root_agent(
+                chat_model=ScriptedModel(
+                    model="test/chat",
+                    responses=[
+                        self._function_call(
+                            "note_taker",
+                            {"request": "Assess the user's new information."},
+                            "memory-1",
+                        ),
+                        self._text_response("Thank you for sharing that."),
+                    ],
+                ),
+                note_taker=specialist,
+            )
+            service = InMemorySessionService()
+            app = App(name="deterministic_memory_gate", root_agent=root)
+            await service.create_session(app_name=app.name, user_id="synthetic-user", session_id="memory-gate")
+            runner = Runner(app=app, session_service=service)
+            with patch.object(user_tools, "USER_DIRECTORY", user_directory):
+                user_tools._initialise_user_workspace()
+                before = filesystem.snapshot()
+                async for _ in runner.run_async(
+                        user_id="synthetic-user",
+                        session_id="memory-gate",
+                        new_message=types.Content(
+                            role="user",
+                            parts=[
+                                types.Part.from_text(
+                                    text="I started a new role this week."
+                                )
+                            ],
+                        ),
+                    ):
+                    pass
+            after = filesystem.snapshot()
+
+        return before, after
+
+    @staticmethod
+    def _function_call(name: str, args: dict[str, str], call_id: str) -> LlmResponse:
+        return LlmResponse(
+            content=types.Content(
+                role="model",
+                parts=[
+                    types.Part(
+                        function_call=types.FunctionCall(
+                            name=name,
+                            args=args,
+                            id=call_id,
+                        )
+                    )
+                ],
+            )
+        )
 
     @staticmethod
     def _text_response(text: str) -> LlmResponse:
