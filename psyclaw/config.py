@@ -31,6 +31,16 @@ def load_chat_configuration(environment: Mapping[str, str]) -> ChatConfiguration
     )
 
 
+def load_memory_configuration(environment: Mapping[str, str]) -> ChatConfiguration:
+    """A dedicated memory model is optional. If no model is provided, inherit chat model."""
+    chat = load_chat_configuration(environment)
+    return ChatConfiguration(
+        model=_optional_value(environment, "PSYCLAW_MEMORY_MODEL") or chat.model,
+        api_key=_optional_value(environment, "PSYCLAW_MEMORY_API_KEY") or chat.api_key,
+        api_base=_optional_value(environment, "PSYCLAW_MEMORY_API_BASE") or chat.api_base,
+    )
+
+
 def has_complete_stt_configuration(environment: Mapping[str, str]) -> bool:
     """Validate the optional STT pair and return whether it is enabled."""
     model = _optional_value(environment, "PSYCLAW_STT_MODEL")

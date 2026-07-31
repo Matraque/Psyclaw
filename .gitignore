@@ -8,6 +8,7 @@ dist/
 .DS_Store
 todo.txt
 BACKLOG.html
+AGENTS.md
 
 # User records are local runtime data. Never commit real personal information.
 .psyclaw-data/
