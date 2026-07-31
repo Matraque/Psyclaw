@@ -1,11 +1,10 @@
 ---
 name: act-therapy
-title: ACT Acceptance and Commitment Therapy
-description: "Values clarification, psychological flexibility, defusion from thoughts, and committed action."
-version: 1.0.0
-author: groxaxo
+description: "Use for values clarification, psychological flexibility, defusion from thoughts, and committed action when the user is struggling with avoidance or rigidity, fused with thoughts, disconnected from what matters, wants to move toward values despite discomfort, or is experiencing chronic anxiety, pain, or life transitions."
 license: MIT
 metadata:
+  author: groxaxo
+  version: "1.1.0"
   hermes:
     tags: [Psychology, ACT, Acceptance, Commitment, Values, Defusion, Mindfulness, Mental Health]
     category: mental-health
@@ -17,14 +16,6 @@ metadata:
 # ACT — Acceptance and Commitment Therapy
 
 ACT builds psychological flexibility: the ability to be present, open, and do what matters — even when it's hard.
-
-## When to Activate This Skill
-
-- The user is struggling with avoidance or rigidity.
-- The user is fused with their thoughts (treating thoughts as facts).
-- The user feels disconnected from what matters to them.
-- The user wants to move toward their values despite discomfort.
-- Chronic anxiety, pain, or life transitions are present.
 
 ## The Six Core Processes (Hexaflex)
 
