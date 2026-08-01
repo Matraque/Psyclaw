@@ -238,7 +238,7 @@ def _extract_agent_metrics(
     no_op = not mutating_calls
     if scenario.expects_note_taker:
         decision_ok = psychologist_calls > 0
-        behavior_ok = bool(mutating_calls)
+        behavior_ok = bool(mutating_calls) and "read_text_file" in filesystem_calls
     else:
         decision_ok = psychologist_calls == 0 or no_op
         behavior_ok = no_op

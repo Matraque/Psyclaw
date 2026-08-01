@@ -3,10 +3,12 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from google.adk.agents import Agent
 from google.adk.apps import App
+from google.adk.events import Event
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.llm_response import LlmResponse
 from google.adk.runners import Runner
@@ -16,7 +18,12 @@ from google.genai import types
 from pydantic import Field
 
 from psyclaw.agent import create_root_agent
-from psyclaw.note_taker import NOTE_TAKER_INSTRUCTION, create_note_taker
+from psyclaw.note_taker import (
+    NOTE_TAKER_INSTRUCTION,
+    create_note_taker,
+    discard_unverified_prose,
+    verify_consolidation,
+)
 from psyclaw import filesystem_mcp, user_tools
 
 
@@ -33,17 +40,24 @@ class ScriptedModel(BaseLlm):
 
 
 class TemporaryMemoryFilesystem:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, failing_tools: frozenset[str] = frozenset()) -> None:
         self.root = root.resolve()
+        self.failing_tools = failing_tools
 
     def read_text_file(self, path: str) -> dict[str, str]:
+        if "read_text_file" in self.failing_tools:
+            return {"isError": True}
         return {"content": self._path(path).read_text(encoding="utf-8")}
 
     def write_file(self, path: str, content: str) -> dict[str, str]:
+        if "write_file" in self.failing_tools:
+            return {"isError": True}
         self._path(path).write_text(content, encoding="utf-8")
         return {"status": "ok"}
 
     def edit_file(self, path: str, old_text: str, new_text: str) -> dict[str, str]:
+        if "edit_file" in self.failing_tools:
+            return {"isError": True}
         file_path = self._path(path)
         content = file_path.read_text(encoding="utf-8")
         if content.count(old_text) != 1:
@@ -73,13 +87,15 @@ class NoteTakerTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(note_taker.tools[0], McpToolset)
         self.assertEqual(note_taker.mode, "single_turn")
         self.assertEqual(note_taker.include_contents, "default")
+        self.assertIn(verify_consolidation, note_taker.canonical_after_agent_callbacks)
+        self.assertIn(discard_unverified_prose, note_taker.canonical_after_model_callbacks)
         self.assertEqual(
             note_taker.tools[0].tool_filter,
             list(filesystem_mcp.NOTE_TAKER_TOOL_ALLOWLIST),
         )
 
     def test_note_taker_instruction_covers_consolidation_and_provenance(self) -> None:
-        for expected in ("Do nothing", "add, correct, or update", "reported facts", "observations", "hypotheses", "unknowns"):
+        for expected in ("read-only no-op", "write or edit", "reported facts", "observations", "hypotheses", "unknowns"):
             with self.subTest(expected=expected):
                 self.assertIn(expected, NOTE_TAKER_INSTRUCTION)
         self.assertIn("conversation history is available", NOTE_TAKER_INSTRUCTION)
@@ -251,6 +267,288 @@ class NoteTakerTest(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertEqual(after["memory.md"], expected)
                 self.assertEqual(before == after, tool_name is None)
+
+    async def test_verifier_rejects_text_only_single_turn_success(self) -> None:
+        result = await self._run_verified_case([self._text_response("Memory consolidated")])
+
+        self.assertEqual(result, "Memory consolidation failed: no filesystem operation.")
+
+    async def test_verifier_accepts_current_branch_read_only_no_op(self) -> None:
+        result = await self._run_verified_case(
+            [
+                self._function_call("read_text_file", {"path": "memory.md"}, "read-1"),
+                self._text_response("Memory consolidated"),
+            ]
+        )
+
+        self.assertEqual(result, "No durable memory update.")
+
+    async def test_verifier_accepts_current_branch_read_then_write_or_edit(self) -> None:
+        for name, call in (
+            (
+                "write",
+                self._function_call(
+                    "write_file",
+                    {"path": "memory.md", "content": "# Updated\n"},
+                    "write-1",
+                ),
+            ),
+            (
+                "edit",
+                self._function_call(
+                    "edit_file",
+                    {
+                        "path": "memory.md",
+                        "old_text": "# Memory\n",
+                        "new_text": "# Updated\n",
+                    },
+                    "edit-1",
+                ),
+            ),
+        ):
+            with self.subTest(name=name):
+                result = await self._run_verified_case(
+                    [
+                        self._function_call(
+                            "read_text_file", {"path": "memory.md"}, "read-1"
+                        ),
+                        call,
+                        self._text_response("Unverified prose"),
+                    ]
+                )
+
+                self.assertEqual(result, "Memory consolidated.")
+
+    async def test_verifier_rejects_failed_filesystem_responses(self) -> None:
+        cases = (
+            (
+                "read",
+                frozenset({"read_text_file"}),
+                [
+                    self._function_call("read_text_file", {"path": "memory.md"}, "read-1"),
+                    self._text_response("Unverified prose"),
+                ],
+                "Memory consolidation failed: filesystem operation failed.",
+            ),
+            (
+                "write",
+                frozenset({"write_file"}),
+                [
+                    self._function_call("read_text_file", {"path": "memory.md"}, "read-1"),
+                    self._function_call(
+                        "write_file", {"path": "memory.md", "content": "# Updated\n"}, "write-1"
+                    ),
+                    self._text_response("Unverified prose"),
+                ],
+                "Memory consolidation failed: filesystem operation failed.",
+            ),
+            (
+                "edit",
+                frozenset({"edit_file"}),
+                [
+                    self._function_call("read_text_file", {"path": "memory.md"}, "read-1"),
+                    self._function_call(
+                        "edit_file",
+                        {"path": "memory.md", "old_text": "# Memory\n", "new_text": "# Updated\n"},
+                        "edit-1",
+                    ),
+                    self._text_response("Unverified prose"),
+                ],
+                "Memory consolidation failed: filesystem operation failed.",
+            ),
+        )
+        for name, failing_tools, responses, expected in cases:
+            with self.subTest(name=name):
+                result = await self._run_verified_case(responses, failing_tools=failing_tools)
+
+                self.assertEqual(result, expected)
+
+    def test_verifier_accepts_successful_response_without_an_id(self) -> None:
+        responses = Event(
+            author="note_taker",
+            invocation_id="current-turn",
+            branch="note_taker@current-call",
+            content=types.Content(
+                role="user",
+                parts=[
+                    types.Part(
+                        function_response=types.FunctionResponse(
+                            name="read_text_file", response={"isError": False}
+                        )
+                    ),
+                    types.Part(
+                        function_response=types.FunctionResponse(
+                            name="write_file", response={"isError": False}
+                        )
+                    ),
+                ],
+            ),
+        )
+        context = SimpleNamespace(
+            session=SimpleNamespace(events=[responses]),
+            invocation_id="current-turn",
+            branch="note_taker@current-call",
+        )
+
+        result = verify_consolidation(context)
+
+        self.assertEqual(result.parts[0].text, "Memory consolidated.")
+
+    def test_prose_suppression_preserves_model_metadata(self) -> None:
+        response = LlmResponse(
+            content=types.Content(role="model", parts=[types.Part.from_text(text="Unverified")]),
+            custom_metadata={"synthetic": "metadata"},
+        )
+
+        suppressed = discard_unverified_prose(SimpleNamespace(), response)
+
+        self.assertIsNone(suppressed.content)
+        self.assertEqual(suppressed.custom_metadata, {"synthetic": "metadata"})
+
+    async def test_verifier_ignores_previous_turn_operations(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            filesystem = TemporaryMemoryFilesystem(Path(temporary_directory))
+            (filesystem.root / "memory.md").write_text("# Memory\n", encoding="utf-8")
+            specialist = Agent(
+                name="note_taker",
+                model=ScriptedModel(
+                    model="test/memory",
+                    responses=[
+                        self._function_call("read_text_file", {"path": "memory.md"}, "read-1"),
+                        self._function_call(
+                            "write_file",
+                            {"path": "memory.md", "content": "# Updated\n"},
+                            "write-1",
+                        ),
+                        self._text_response("Unverified prose"),
+                        self._text_response("Unverified prose"),
+                    ],
+                ),
+                instruction=NOTE_TAKER_INSTRUCTION,
+                mode="single_turn",
+                tools=[filesystem.read_text_file, filesystem.write_file],
+                after_model_callback=discard_unverified_prose,
+                after_agent_callback=verify_consolidation,
+            )
+            root = create_root_agent(
+                chat_model=ScriptedModel(
+                    model="test/chat",
+                    responses=[
+                        self._function_call("note_taker", {"request": "first"}, "call-1"),
+                        self._text_response("done"),
+                        self._function_call("note_taker", {"request": "second"}, "call-2"),
+                        self._text_response("done"),
+                    ],
+                ),
+                note_taker=specialist,
+            )
+            service = InMemorySessionService()
+            app = App(name="previous_turn_isolation", root_agent=root)
+            await service.create_session(app_name=app.name, user_id="test-user", session_id="session")
+            runner = Runner(app=app, session_service=service)
+            for _ in range(2):
+                events = [
+                    event
+                    async for event in runner.run_async(
+                        user_id="test-user",
+                        session_id="session",
+                        new_message=types.Content(
+                            role="user", parts=[types.Part.from_text(text="synthetic")]
+                        ),
+                    )
+                ]
+
+            responses = [
+                response.response["result"]
+                for event in events
+                for response in event.get_function_responses()
+                if response.name == "note_taker"
+            ]
+            self.assertEqual(responses, ["Memory consolidation failed: no filesystem operation."])
+
+    def test_verifier_ignores_another_branch_operations(self) -> None:
+        other_branch_write = Event(
+            author="note_taker",
+            invocation_id="current-turn",
+            branch="note_taker@other-call",
+            content=types.Content(
+                role="model",
+                parts=[
+                    types.Part(
+                        function_call=types.FunctionCall(name="write_file", args={}, id="write")
+                    )
+                ],
+            ),
+        )
+        current_branch_text = Event(
+            author="note_taker",
+            invocation_id="current-turn",
+            branch="note_taker@current-call",
+            content=types.Content(role="model", parts=[types.Part.from_text(text="Unverified")]),
+        )
+        context = SimpleNamespace(
+            session=SimpleNamespace(events=[other_branch_write, current_branch_text]),
+            invocation_id="current-turn",
+            branch="note_taker@current-call",
+        )
+
+        result = verify_consolidation(context)
+
+        self.assertEqual(
+            result.parts[0].text,
+            "Memory consolidation failed: no filesystem operation.",
+        )
+
+    async def _run_verified_case(
+        self,
+        memory_responses: list[LlmResponse],
+        *,
+        failing_tools: frozenset[str] = frozenset(),
+    ) -> str:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            filesystem = TemporaryMemoryFilesystem(
+                Path(temporary_directory), failing_tools=failing_tools
+            )
+            (filesystem.root / "memory.md").write_text("# Memory\n", encoding="utf-8")
+            specialist = Agent(
+                name="note_taker",
+                model=ScriptedModel(model="test/memory", responses=memory_responses),
+                instruction=NOTE_TAKER_INSTRUCTION,
+                mode="single_turn",
+                tools=[filesystem.read_text_file, filesystem.write_file, filesystem.edit_file],
+                after_model_callback=discard_unverified_prose,
+                after_agent_callback=verify_consolidation,
+            )
+            root = create_root_agent(
+                chat_model=ScriptedModel(
+                    model="test/chat",
+                    responses=[
+                        self._function_call("note_taker", {"request": "synthetic"}, "call-1"),
+                        self._text_response("done"),
+                    ],
+                ),
+                note_taker=specialist,
+            )
+            service = InMemorySessionService()
+            app = App(name="verified_memory_gate", root_agent=root)
+            await service.create_session(app_name=app.name, user_id="test-user", session_id="session")
+            runner = Runner(app=app, session_service=service)
+            events = [
+                event
+                async for event in runner.run_async(
+                    user_id="test-user",
+                    session_id="session",
+                    new_message=types.Content(
+                        role="user", parts=[types.Part.from_text(text="synthetic")]
+                    ),
+                )
+            ]
+        return next(
+            response.response["result"]
+            for event in events
+            for response in event.get_function_responses()
+            if response.name == "note_taker"
+        )
 
     async def _run_memory_case(
         self,
