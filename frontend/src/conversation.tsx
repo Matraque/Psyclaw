@@ -20,6 +20,10 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 
 import type { ConnectionConfig } from "./config";
 import {
+  createPrivateNoteSafeSessionLoad,
+  createPrivateNoteSafeStream,
+} from "./adk-privacy";
+import {
   readSessionId,
   restoreSession,
   type SessionRestorationResult,
@@ -205,13 +209,15 @@ function ConnectedConversation({ config, transcriptionClient }: { config: Extrac
     syncSessionIdInUrl(threadId);
   }, []);
   const runtime = useAdkRuntime({
-    stream: createAdkStream({
-      api: config.adkUrl,
-      appName: config.appName,
-      userId: config.userId,
-    }),
+    stream: createPrivateNoteSafeStream(
+      createAdkStream({
+        api: config.adkUrl,
+        appName: config.appName,
+        userId: config.userId,
+      }),
+    ),
     sessionAdapter: session.adapter,
-    load: session.load,
+    load: createPrivateNoteSafeSessionLoad(session.load),
     onThreadIdChange,
   });
 
