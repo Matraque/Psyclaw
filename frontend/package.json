@@ -13,6 +13,7 @@
   "dependencies": {
     "@assistant-ui/react": "0.14.27",
     "@assistant-ui/react-google-adk": "0.0.17",
+    "@assistant-ui/react-markdown": "0.14.7",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
