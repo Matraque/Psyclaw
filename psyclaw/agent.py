@@ -17,6 +17,7 @@ from psyclaw.config import (
 )
 from psyclaw.instruction import build_instruction
 from psyclaw.note_taker import create_note_taker
+from psyclaw.tool_activity import ToolActivityPlugin
 from psyclaw.user_tools import (
     list_files,
     read_file,
@@ -91,4 +92,4 @@ def create_root_agent(
 root_agent = create_root_agent()
 
 
-app = App(name="psyclaw", root_agent=root_agent)
+app = App(name="psyclaw", root_agent=root_agent, plugins=[ToolActivityPlugin()])
