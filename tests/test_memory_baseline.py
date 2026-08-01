@@ -68,6 +68,17 @@ class MemoryBaselineTest(unittest.TestCase):
         self.assertEqual(behavior.mutating_calls, ("write_file",))
         self.assertTrue(behavior.meets_expectation)
 
+    def test_durable_fact_requires_a_read_before_mutation(self) -> None:
+        scenario = BaselineScenario(identifier="durable_fact", message="synthetic")
+        events = (
+            FakeEvent("psyclaw_agent", calls=(SimpleNamespace(name="note_taker"),)),
+            FakeEvent("note_taker", calls=(SimpleNamespace(name="write_file"),)),
+        )
+
+        _, behavior = _extract_agent_metrics(events, scenario)
+
+        self.assertFalse(behavior.meets_expectation)
+
     def test_greeting_accepts_a_counted_filesystem_no_op(self) -> None:
         scenario = BaselineScenario(
             identifier="greeting", message="synthetic", expects_note_taker=False
