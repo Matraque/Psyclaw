@@ -32,7 +32,14 @@ describe("Conversation", () => {
     fireEvent.change(composer, { target: { value: "Synthetic check" } });
     fireEvent.keyDown(composer, { key: "Enter" });
 
-    expect(await screen.findByText(/No message was sent to an ADK server/)).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Local interface demonstration" })).toBeVisible();
+    expect(screen.getByRole("list")).toBeVisible();
+    expect(screen.getByText("No message was sent").tagName).toBe("STRONG");
+    expect(screen.getByText("Markdown").tagName).toBe("EM");
+    expect(screen.getByText("local").tagName).toBe("CODE");
+    expect(screen.getByRole("link", { name: "Assistant UI" })).toHaveAttribute("href", "https://www.assistant-ui.com/");
+    expect(screen.queryByRole("img", { name: "Unsafe markup" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/<img/)).not.toBeInTheDocument();
   });
 
   it("blocks the composer while reopening a conversation", () => {

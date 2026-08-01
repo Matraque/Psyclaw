@@ -10,6 +10,7 @@ import {
   useLocalRuntime,
   useAui,
 } from "@assistant-ui/react";
+import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import {
   createAdkSessionAdapter,
   createAdkStream,
@@ -33,7 +34,7 @@ const demoModel: ChatModelAdapter = {
       content: [
         {
           type: "text",
-          text: "This is a local interface demonstration. No message was sent to an ADK server.",
+          text: "## Local interface demonstration\n\n- **No message was sent** to an ADK server.\n- _Markdown_ stays readable with `local` formatting and [Assistant UI](https://www.assistant-ui.com/).\n\n<img src=\"invalid\" alt=\"Unsafe markup\">",
         },
       ],
     };
@@ -54,12 +55,12 @@ function AssistantMessage() {
       <MessagePrimitive.Parts>
         {({ part }) =>
           part.type === "text" ? (
-            <p className="assistant-text">
-              <MessagePartPrimitive.Text />
+            <>
+              <MarkdownTextPrimitive className="assistant-markdown" defer skipHtml />
               <MessagePartPrimitive.InProgress>
                 <span className="stream-cursor" aria-label="Responding" />
               </MessagePartPrimitive.InProgress>
-            </p>
+            </>
           ) : null
         }
       </MessagePrimitive.Parts>
