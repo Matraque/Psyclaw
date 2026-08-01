@@ -80,6 +80,8 @@ On first use, Psyclaw copies its starter memory files to
 This private folder stores local user data and conversation history. Never
 commit or share it.
 
+See [how to view local transcripts](docs/viewing-transcripts.md).
+
 Messages and audio are processed by the AI providers you configure.
 
 ## **Tests**
